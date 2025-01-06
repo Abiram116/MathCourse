@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linear Programming Solver</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            font-size: 16px;
+        }
+        select {
+            padding: 8px;
+            margin-top: 5px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #error-message {
+            color: red;
+            margin-top: 10px;
+        }
+        #solution-container {
+            margin-top: 20px;
+        }
+        #solution-image {
+            max-width: 100%;
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            display: none;
+        }
+        .result {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Linear Programming Solver</h1>
+    
+    <form id="lp-form">
+        <div class="input-group">
+            <label for="optimization_type">Optimization Type:</label>
+            <select id="optimization_type" name="optimization_type" required>
+                <option value="minimize">Minimize</option>
+                <option value="maximize">Maximize</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label for="objective">Objective Function (e.g., 2x + 3y):</label>
+            <input type="text" id="objective" name="objective" placeholder="e.g., 2x + 3y" required>
+        </div>
+
+        <div class="input-group">
+            <label for="constraints">Constraints (one per line, e.g., x + 2y <= 10):</label>
+            <input type="text" id="constraints" name="constraints" 
+                   placeholder="e.g., x + 2y <= 10; 3x + 4y <= 15" required>
+            <small>Separate constraints with semicolons (;)</small>
+        </div>
+
+        <button type="submit">Solve</button>
+    </form>
+
+    <div id="error-message"></div>
+
+    <div id="solution-container" class="result" style="display: none;">
+        <h2>Results:</h2>
+        <div id="solution"></div>
+        <div id="optimal-value"></div>
+    </div>
+
+    <img id="solution-image" alt="Solution Visualization">
+
+    <script>
+        document.getElementById('lp-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Reset previous results
+            document.getElementById('error-message').textContent = '';
+            document.getElementById('solution-container').style.display = 'none';
+            document.getElementById('solution-image').style.display = 'none';
+
+            try {
+                // Get form data
+                const formData = {
+                    optimization_type: document.getElementById('optimization_type').value,
+                    objective: document.getElementById('objective').value,
+                    constraints: document.getElementById('constraints').value
+                };
+
+                // Send request to server
+                const response = await fetch('/solve/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+
+                // Display results
+                document.getElementById('solution').textContent = 
+                    `Optimal Solution: x = ${result.solution[0].toFixed(4)}, y = ${result.solution[1].toFixed(4)}`;
+                document.getElementById('optimal-value').textContent = 
+                    `Optimal Value: ${result.optimal_value.toFixed(4)}`;
+                document.getElementById('solution-container').style.display = 'block';
+
+                // Display visualization
+                const imgElement = document.getElementById('solution-image');
+                imgElement.src = `data:image/png;base64,${result.image}`;
+                imgElement.style.display = 'block';
+
+            } catch (error) {
+                document.getElementById('error-message').textContent = error.message;
+            }
+        });
+
+        // Helper function to get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</body>
+</html>
