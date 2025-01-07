@@ -7,21 +7,19 @@ import io
 import base64
 import json
 import re
+from matplotlib.patches import Polygon
+from scipy.spatial import ConvexHull
 import matplotlib
-matplotlib.use('Agg')
+
+matplotlib.use('Agg')  # Use non-interactive backend for matplotlib
 
 def index(request):
     return render(request, 'index.html')
 
 def parse_expression(expr):
-    # Remove spaces
     expr = expr.replace(' ', '')
-    
-    # Split by + or -
     terms = re.findall(r'[+-]?\d*\.?\d*[xy]|[+-]?\d+\.?\d*', expr)
-    
-    coefficients = [0, 0]  # [x_coeff, y_coeff]
-    
+    coefficients = [0, 0]
     for term in terms:
         if 'x' in term:
             coeff = term.replace('x', '')
@@ -31,15 +29,14 @@ def parse_expression(expr):
             coeff = term.replace('y', '')
             coeff = 1 if coeff in ['+', ''] else -1 if coeff == '-' else float(coeff)
             coefficients[1] = coeff
-        
     return coefficients
 
 def parse_constraint(expr):
-    # Split by <= or >=
     parts = re.split(r'<=|>=|=', expr)
+    if len(parts) != 2:
+        raise ValueError("Invalid constraint format")
     left_side = parts[0]
     right_side = float(parts[1])
-    
     coefficients = parse_expression(left_side)
     return coefficients + [right_side]
 
@@ -47,81 +44,87 @@ def solve_lp(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            
-            # Parse objective function
             objective = parse_expression(data['objective'])
-            
-            # Parse constraints
-            constraints = [parse_constraint(c) for c in data['constraints'].split(';')]
+            constraints = [parse_constraint(c) for c in data['constraints'].split(';') if c.strip()]
             constraints_matrix = np.array(constraints)
-            
-            # Set up the problem
+
             c = np.array(objective)
             if data['optimization_type'] == 'maximize':
-                c = -c  # Negate for maximization
-                
-            A = constraints_matrix[:, :2]  # First two columns (x and y coefficients)
-            b = constraints_matrix[:, 2]   # Last column (right hand side)
-            
-            # Add non-negativity constraints
+                c = -c
+
+            A = constraints_matrix[:, :2]
+            b = constraints_matrix[:, 2]
             bounds = [(0, None), (0, None)]
-            
-            # Solve linear programming problem
-            res = linprog(
-                c=c,
-                A_ub=A,
-                b_ub=b,
-                bounds=bounds,
-                method='highs'
-            )
-            
+
+            res = linprog(c=c, A_ub=A, b_ub=b, bounds=bounds, method='highs')
             if not res.success:
-                return JsonResponse({'error': 'Optimization failed'}, status=400)
-            
-            # Generate visualization
+                return JsonResponse({'error': 'Optimization failed: ' + res.message}, status=400)
+
             plt.figure(figsize=(10, 8))
-            
-            # Plot feasible region
-            x = np.linspace(0, max(20, np.max(b)/2), 200)
-            
-            # Plot constraints
+
+            # Define a range for x
+            x = np.linspace(0, max(20, np.max(b) / 2), 400)
+
+            # Plot constraints and feasible region
             for i in range(len(b)):
-                if A[i, 1] != 0:  # Avoid division by zero
+                if A[i, 1] != 0:
                     y = (b[i] - A[i, 0] * x) / A[i, 1]
-                    plt.plot(x, y, label=f'{A[i,0]}x + {A[i,1]}y ≤ {b[i]}')
-            
-            # Plot optimal point
-            if res.success:
-                plt.plot(res.x[0], res.x[1], 'r*', markersize=15, label='Optimal Point')
-            
-            # Customize plot
+                    plt.plot(x, y, label=f'{A[i,0]}x + {A[i,1]}y ≤ {b[i]}', linewidth=2.0)
+                else:
+                    plt.axvline(x=b[i] / A[i, 0], color='blue', linestyle='--', label=f'x ≤ {b[i] / A[i,0]}')
+
+            # Generate vertices for the feasible region
+            vertices = [[0, 0]]
+            for i in range(len(b)):
+                if A[i, 1] != 0:
+                    y1 = (b[i] - A[i, 0] * 0) / A[i, 1]
+                    y2 = (b[i] - A[i, 0] * (np.max(b))) / A[i, 1]
+                    vertices.append([0, y1])
+                    vertices.append([np.max(b), y2])
+
+            # Filter only valid points within bounds
+            vertices = np.array([v for v in vertices if v[0] >= 0 and v[1] >= 0])
+
+            # Check if vertices form a valid 2D region
+            if len(vertices) > 2 and not np.allclose(vertices[:, 0], vertices[0, 0]):
+                hull = ConvexHull(vertices)
+                feasible_polygon = Polygon(vertices[hull.vertices], alpha=0.3, color='green', label='Feasible Region')
+                plt.gca().add_patch(feasible_polygon)
+            else:
+                plt.fill(vertices[:, 0], vertices[:, 1], color='green', alpha=0.3, label='Feasible Region (Degenerate)')
+
+            # Plot the optimal point
+            plt.plot(res.x[0], res.x[1], 'ro', markersize=10, label='Optimal Point')
+            plt.text(res.x[0], res.x[1], f'({res.x[0]:.2f}, {res.x[1]:.2f})', fontsize=12, color='red', weight='bold')
+
+            # Style the graph
             plt.grid(True, alpha=0.3)
-            plt.xlabel('x')
-            plt.ylabel('y')
-            plt.title('Linear Programming Solution')
-            plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-            
-            # Set reasonable axis limits
+            plt.xlabel('x', fontsize=14)
+            plt.ylabel('y', fontsize=14)
+            plt.title('Linear Programming Solution', fontsize=16, weight='bold')
+            plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=10)
+            plt.tight_layout()
+
+            # Dynamically adjust axis limits
             max_val = max(np.max(b), np.max(res.x)) * 1.2
             plt.xlim(0, max_val)
             plt.ylim(0, max_val)
-            
-            # Convert plot to base64 image
+
+            # Save the graph to buffer
             buf = io.BytesIO()
-            plt.savefig(buf, format='png', bbox_inches='tight', dpi=100)
+            plt.savefig(buf, format='png', bbox_inches='tight', dpi=120)
             plt.close()
             buf.seek(0)
             image_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
-            
+
             optimal_value = float(-res.fun if data['optimization_type'] == 'maximize' else res.fun)
-            
+
             return JsonResponse({
                 'solution': res.x.tolist(),
                 'optimal_value': optimal_value,
                 'image': image_base64
             })
-            
+
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
-            
     return JsonResponse({'error': 'Invalid request method'}, status=405)
