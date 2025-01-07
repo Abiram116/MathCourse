@@ -4,112 +4,158 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Linear Programming Solver</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #222;
-            color: #fff;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            line-height: 1.6;
-        }
-        h1 {
-            text-align: center;
-            color: #4CAF50;
-        }
-        .input-group {
-            margin-bottom: 20px;
-        }
-        label {
-            font-weight: bold;
-            display: block;
-        }
-        input[type="text"], select {
-            width: 100%;
-            padding: 10px;
-            margin-top: 5px;
-            font-size: 16px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        button {
-            background-color: #4CAF50;
+        select option {
+            background-color: #374151;
             color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
         }
-        button:hover {
-            background-color: #45a049;
+        .title-gradient {
+            background: linear-gradient(to right, #4ade80, #3b82f6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(74, 222, 128, 0.2);
+            line-height: 1.2;
         }
-        #error-message {
-            color: red;
-            margin-top: 10px;
+        .graph-container {
+            aspect-ratio: 4/3;
+            width: 100%;
+            max-height: 80vh;
         }
-        #solution-container {
-            margin-top: 20px;
-        }
-        #solution-image {
-            max-width: 100%;
-            margin-top: 20px;
-            border: 1px solid #ddd;
-            display: none;
-        }
-        .result {
-            background-color: #333;
-            padding: 15px;
-            border-radius: 4px;
-            margin-top: 20px;
+        .graph-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
     </style>
 </head>
-<body>
-    <h1>Linear Programming Solver</h1>
-    <form id="lp-form">
-        <div class="input-group">
-            <label for="optimization_type">Optimization Type:</label>
-            <select id="optimization_type" name="optimization_type" required>
-                <option value="minimize">Minimize</option>
-                <option value="maximize">Maximize</option>
-            </select>
+<body class="bg-gradient-to-br from-gray-900 to-gray-800 text-gray-100 min-h-screen overflow-x-hidden flex items-center">
+    <div class="container mx-auto px-4 py-12 opacity-0 max-w-7xl" id="mainContainer">
+        <h1 class="text-5xl font-bold text-center mb-16 title-gradient">
+            Linear Programming Solver
+        </h1>
+        
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
+            <!-- Input Form -->
+            <div class="xl:col-span-4 transform hover:scale-[1.02] transition-transform duration-300">
+                <div class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-700/50">
+                    <form id="lp-form" class="space-y-6">
+                        <div class="form-group opacity-0">
+                            <label class="block text-sm font-medium mb-2 text-green-400" for="optimization_type">
+                                Optimization Type
+                            </label>
+                            <select id="optimization_type" name="optimization_type" required
+                                class="w-full bg-gray-700 text-white border border-gray-600 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-400 focus:border-transparent transition-colors duration-200">
+                                <option value="minimize">Minimize</option>
+                                <option value="maximize">Maximize</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group opacity-0">
+                            <label class="block text-sm font-medium mb-2 text-green-400" for="objective">
+                                Objective Function
+                            </label>
+                            <input type="text" id="objective" name="objective" 
+                                placeholder="e.g., 2x + 3y"
+                                class="w-full bg-gray-700/50 backdrop-blur border border-gray-600 rounded-xl px-4 py-2 focus:ring-2 focus:ring-green-400 focus:border-transparent transition-colors duration-200"
+                                required>
+                        </div>
+
+                        <div class="form-group opacity-0">
+                            <label class="block text-sm font-medium mb-2 text-green-400" for="constraints">
+                                Constraints
+                            </label>
+                            <input type="text" id="constraints" name="constraints"
+                                placeholder="e.g., x + 2y <= 10; 3x + 4y <= 15"
+                                class="w-full bg-gray-700/50 backdrop-blur border border-gray-600 rounded-xl px-4 py-2 focus:ring-2 focus:ring-green-400 focus:border-transparent transition-colors duration-200"
+                                required>
+                            <p class="mt-2 text-sm text-gray-400">Separate constraints with semicolons (;)</p>
+                        </div>
+
+                        <button type="submit" id="solveBtn"
+                            class="w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-medium py-3 px-6 rounded-xl transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 focus:ring-offset-gray-800 opacity-0 transform hover:scale-[1.02]">
+                            Solve
+                        </button>
+                    </form>
+                    <div id="error-message" class="text-red-400 mt-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/50 hidden"></div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="xl:col-span-8 space-y-6">
+                <div id="solution-container" class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-700/50 hidden transform hover:scale-[1.02] transition-transform duration-300">
+                    <h2 class="text-2xl font-semibold mb-6 text-green-400">Results</h2>
+                    <div class="space-y-4">
+                        <div id="solution" class="text-lg"></div>
+                        <div id="optimal-value" class="text-lg"></div>
+                    </div>
+                </div>
+
+                <div id="graph-container" class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-6 border border-gray-700/50 hidden transform hover:scale-[1.02] transition-transform duration-300">
+                    <div class="graph-container">
+                        <img id="solution-image" alt="Solution Visualization" class="rounded-xl">
+                    </div>
+                </div>
+            </div>
         </div>
-
-        <div class="input-group">
-            <label for="objective">Objective Function (e.g., 2x + 3y):</label>
-            <input type="text" id="objective" name="objective" placeholder="e.g., 2x + 3y" required>
-        </div>
-
-        <div class="input-group">
-            <label for="constraints">Constraints (one per line, e.g., x + 2y <= 10):</label>
-            <input type="text" id="constraints" name="constraints" 
-                   placeholder="e.g., x + 2y <= 10; 3x + 4y <= 15" required>
-            <small>Separate constraints with semicolons (;)</small>
-        </div>
-
-        <button type="submit">Solve</button>
-    </form>
-
-    <div id="error-message"></div>
-
-    <div id="solution-container" class="result" style="display: none;">
-        <h2>Results:</h2>
-        <div id="solution"></div>
-        <div id="optimal-value"></div>
     </div>
-
-    <img id="solution-image" alt="Solution Visualization">
-
     <script>
-        document.getElementById('lp-form').addEventListener('submit', async function(e) {
+        // GSAP Animations
+        document.addEventListener('DOMContentLoaded', () => {
+            gsap.to('#mainContainer', {
+                opacity: 1,
+                duration: 1,
+                ease: 'power2.out'
+            });
+
+            gsap.to('.form-group', {
+                opacity: 1,
+                y: 0,
+                stagger: 0.2,
+                duration: 0.8,
+                ease: 'back.out'
+            });
+
+            gsap.to('#solveBtn', {
+                opacity: 1,
+                y: 0,
+                duration: 0.8,
+                delay: 0.8,
+                ease: 'back.out'
+            });
+        });
+
+        // Optimized form handling
+        const form = document.getElementById('lp-form');
+        const errorMessage = document.getElementById('error-message');
+        const solutionContainer = document.getElementById('solution-container');
+        const graphContainer = document.getElementById('graph-container');
+        const solutionImage = document.getElementById('solution-image');
+        
+        // Debounce function
+        const debounce = (func, wait) => {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        };
+
+        // Form submission handler
+        form.addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            // Reset previous results
-            document.getElementById('error-message').textContent = '';
-            document.getElementById('solution-container').style.display = 'none';
-            document.getElementById('solution-image').style.display = 'none';
+            // UI feedback
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="inline-block animate-spin mr-2">↻</span> Solving...';
+            errorMessage.classList.add('hidden');
 
             try {
                 const formData = {
@@ -133,35 +179,54 @@
                     throw new Error(result.error);
                 }
 
+                // Animate results
+                gsap.to([solutionContainer, graphContainer], {
+                    display: 'block',
+                    opacity: 1,
+                    y: 0,
+                    duration: 0.8,
+                    stagger: 0.2,
+                    ease: 'back.out'
+                });
+
                 document.getElementById('solution').textContent = 
                     `Optimal Solution: x = ${result.solution[0].toFixed(4)}, y = ${result.solution[1].toFixed(4)}`;
                 document.getElementById('optimal-value').textContent = 
                     `Optimal Value: ${result.optimal_value.toFixed(4)}`;
-                document.getElementById('solution-container').style.display = 'block';
-
-                const imgElement = document.getElementById('solution-image');
-                imgElement.src = `data:image/png;base64,${result.image}`;
-                imgElement.style.display = 'block';
+                
+                solutionImage.src = `data:image/png;base64,${result.image}`;
 
             } catch (error) {
-                document.getElementById('error-message').textContent = error.message;
+                errorMessage.textContent = error.message;
+                errorMessage.classList.remove('hidden');
+                
+                gsap.from(errorMessage, {
+                    y: -20,
+                    opacity: 0,
+                    duration: 0.4,
+                    ease: 'power2.out'
+                });
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Solve';
             }
         });
 
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie) {
-                const cookies = document.cookie.split(';');
-                for (const cookie of cookies) {
-                    const [key, value] = cookie.trim().split('=');
-                    if (key === name) {
-                        cookieValue = decodeURIComponent(value);
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
+        // Optimized cookie getter
+        const getCookie = (name) => {
+            return document.cookie.split('; ').reduce((r, v) => {
+                const parts = v.split('=');
+                return parts[0] === name ? decodeURIComponent(parts[1]) : r;
+            }, '');
+        };
+
+        // Input validation
+        const inputs = form.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.addEventListener('input', debounce(function() {
+                this.classList.toggle('border-red-500', !this.checkValidity());
+            }, 300));
+        });
     </script>
 </body>
 </html>
