@@ -29,11 +29,40 @@
             height: 100%;
             object-fit: contain;
         }
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(17, 24, 39, 0.8);
+            backdrop-filter: blur(8px);
+            padding: 10px;
+            border-radius: 50%;
+            border: 1px solid rgba(75, 85, 99, 0.5);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 50;
+        }
+        .back-button:hover {
+            transform: scale(1.1);
+            background: rgba(17, 24, 39, 0.9);
+        }
+        .back-arrow {
+            width: 24px;
+            height: 24px;
+            fill: #4ade80;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-gray-900 to-gray-800 text-gray-100 min-h-screen overflow-x-hidden flex items-center">
+    <!-- Back Button -->
+    <a href="/" class="back-button" title="Back to Home">
+        <svg class="back-arrow" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+        </svg>
+    </a>
+
     <div class="container mx-auto px-4 py-12 opacity-0 max-w-7xl" id="mainContainer">
-        <h1 class="text-5xl font-bold text-center mb-16 title-gradient">
+        <h1 class="text-5xl font-bold text-center mb-16 title-gradient pt-8">
             Linear Programming Solver
         </h1>
         
@@ -42,6 +71,7 @@
             <div class="xl:col-span-4 transform hover:scale-[1.02] transition-transform duration-300">
                 <div class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-700/50">
                     <form id="lp-form" class="space-y-6">
+                        {% csrf_token %}
                         <div class="form-group opacity-0">
                             <label class="block text-sm font-medium mb-2 text-green-400" for="optimization_type">
                                 Optimization Type
@@ -59,7 +89,7 @@
                             </label>
                             <input type="text" id="objective" name="objective" 
                                 placeholder="e.g., 2x + 3y"
-                                class="w-full bg-gray-700 text-white border border-gray-600 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-400 focus:border-transparent transition-colors duration-200"><required>
+                                class="w-full bg-gray-700 text-white border border-gray-600 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-400 focus:border-transparent transition-colors duration-200" required>
                         </div>
 
                         <div class="form-group opacity-0">
@@ -68,8 +98,7 @@
                             </label>
                             <input type="text" id="constraints" name="constraints"
                                 placeholder="e.g., x + 2y <= 10; 3x + 4y <= 15"
-                                class="w-full bg-gray-700 text-white border border-gray-600 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-400 focus:border-transparent transition-colors duration-200">
-                            <required>
+                                class="w-full bg-gray-700 text-white border border-gray-600 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-400 focus:border-transparent transition-colors duration-200" required>
                             <p class="mt-2 text-sm text-gray-400">Separate constraints with semicolons (;)</p>
                         </div>
 
@@ -101,7 +130,6 @@
         </div>
     </div>
 
-    {% csrf_token %}
     <script>
         // GSAP Animations
         document.addEventListener('DOMContentLoaded', () => {
@@ -128,31 +156,16 @@
             });
         });
 
-        // Optimized form handling
+        // Form submission handler
         const form = document.getElementById('lp-form');
         const errorMessage = document.getElementById('error-message');
         const solutionContainer = document.getElementById('solution-container');
         const graphContainer = document.getElementById('graph-container');
         const solutionImage = document.getElementById('solution-image');
-        
-        // Debounce function
-        const debounce = (func, wait) => {
-            let timeout;
-            return function executedFunction(...args) {
-                const later = () => {
-                    clearTimeout(timeout);
-                    func(...args);
-                };
-                clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
-            };
-        };
 
-        // Form submission handler
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
-            
-            // UI feedback
+
             const submitBtn = this.querySelector('button[type="submit"]');
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span class="inline-block animate-spin mr-2">↻</span> Solving...';
@@ -165,14 +178,22 @@
                     constraints: document.getElementById('constraints').value
                 };
 
-                const response = await fetch('/solve/', {
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+                const response = await fetch('/graphical/solve/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': getCookie('csrftoken')
+                        'X-CSRFToken': csrfToken
                     },
-                    body: JSON.stringify(formData)
+                    body: JSON.stringify(formData),
+                    credentials: 'same-origin'
                 });
+
+                if (!response.ok) {
+                    const errorData = await response.text();
+                    throw new Error(`Server error: ${errorData}`);
+                }
 
                 const result = await response.json();
 
@@ -180,53 +201,22 @@
                     throw new Error(result.error);
                 }
 
-                // Animate results
-                gsap.to([solutionContainer, graphContainer], {
-                    display: 'block',
-                    opacity: 1,
-                    y: 0,
-                    duration: 0.8,
-                    stagger: 0.2,
-                    ease: 'back.out'
-                });
+                solutionContainer.classList.remove('hidden');
+                graphContainer.classList.remove('hidden');
 
-                document.getElementById('solution').textContent = 
-                    `Optimal Solution: x = ${result.solution[0].toFixed(4)}, y = ${result.solution[1].toFixed(4)}`;
-                document.getElementById('optimal-value').textContent = 
-                    `Optimal Value: ${result.optimal_value.toFixed(4)}`;
-                
+                document.getElementById('solution').textContent = `Optimal Solution: x = ${result.solution[0].toFixed(2)}, y = ${result.solution[1].toFixed(2)}`;
+                document.getElementById('optimal-value').textContent = `Optimal Value: ${result.optimal_value.toFixed(2)}`;
                 solutionImage.src = `data:image/png;base64,${result.image}`;
 
+                // Smooth scroll to results
+                solutionContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
             } catch (error) {
                 errorMessage.textContent = error.message;
                 errorMessage.classList.remove('hidden');
-                
-                gsap.from(errorMessage, {
-                    y: -20,
-                    opacity: 0,
-                    duration: 0.4,
-                    ease: 'power2.out'
-                });
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Solve';
             }
-        });
-
-        // Optimized cookie getter
-        const getCookie = (name) => {
-            return document.cookie.split('; ').reduce((r, v) => {
-                const parts = v.split('=');
-                return parts[0] === name ? decodeURIComponent(parts[1]) : r;
-            }, '');
-        };
-
-        // Input validation
-        const inputs = form.querySelectorAll('input, select');
-        inputs.forEach(input => {
-            input.addEventListener('input', debounce(function() {
-                this.classList.toggle('border-red-500', !this.checkValidity());
-            }, 300));
         });
     </script>
 </body>
