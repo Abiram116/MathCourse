@@ -12,10 +12,7 @@ import json
 import re
 import matplotlib
 
-matplotlib.use('Agg')  # Use non-interactive backend for matplotlib
-
-def home(request):
-    return render(request, 'home.html')
+matplotlib.use('Agg')
 
 @ensure_csrf_cookie
 def graphical_solver(request):
