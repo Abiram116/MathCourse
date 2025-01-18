@@ -68,36 +68,107 @@ def parse_constraint(expr):
     return coefficients + [right_side]
 
 def get_vertices(A, b):
+    """
+    Find vertices of the feasible region using a more robust approach
+    that works for all types of linear programming problems.
+    """
     vertices = []
     num_constraints = len(b)
     
-    # Add origin if it's feasible
-    if all(bi >= 0 for bi in b):
-        vertices.append([0, 0])
+    # Calculate bounds based on constraint coefficients and constants
+    coeff_max = max(abs(A.max()), abs(A.min()))
+    b_max = max(abs(b.max()), abs(b.min()))
+    max_bound = max(b_max / coeff_max if coeff_max != 0 else b_max, 100) * 1.5
     
-    # Add axis intersections if they're feasible
-    for i in range(len(A[0])):
-        for j, (a_row, b_val) in enumerate(zip(A, b)):
-            if a_row[i] != 0:
-                point = [0, 0]
-                point[i] = b_val / a_row[i]
-                if point[i] >= 0 and all(np.dot(A[k], point) <= b[k] for k in range(len(A))):
-                    vertices.append(point)
-
-    # Find intersection points of constraint lines
+    # Define bounding box vertices
+    box_points = np.array([
+        [0, 0],
+        [max_bound, 0],
+        [0, max_bound],
+        [max_bound, max_bound]
+    ])
+    
+    # Check each bounding box point
+    for point in box_points:
+        if all(np.dot(A[k], point) <= b[k] + 1e-10 for k in range(num_constraints)):
+            vertices.append(point)
+    
+    # Find intersections of constraint lines
     for i in range(num_constraints):
         for j in range(i + 1, num_constraints):
-            A_sub = np.array([A[i], A[j]])
-            b_sub = np.array([b[i], b[j]])
             try:
-                if np.linalg.det(A_sub) != 0:
-                    vertex = np.linalg.solve(A_sub, b_sub)
-                    if all(np.dot(A, vertex) <= b + 1e-10) and all(vertex >= 0):  # Added small tolerance
-                        vertices.append(vertex)
+                # Get the two lines we're intersecting
+                A_sub = np.array([A[i], A[j]])
+                b_sub = np.array([b[i], b[j]])
+                
+                # Check if lines are not parallel
+                if abs(np.linalg.det(A_sub)) > 1e-10:
+                    # Solve the intersection
+                    intersection = np.linalg.solve(A_sub, b_sub)
+                    
+                    # Check if intersection point satisfies all constraints
+                    if (intersection[0] >= -1e-10 and intersection[1] >= -1e-10 and
+                        all(np.dot(A[k], intersection) <= b[k] + 1e-10 for k in range(num_constraints))):
+                        vertices.append(intersection)
             except np.linalg.LinAlgError:
                 continue
+        
+        # Find intersections with axes
+        for axis in range(2):  # 0 for x-axis, 1 for y-axis
+            if abs(A[i][axis]) > 1e-10:  # Avoid division by zero
+                # Point where constraint line intersects with axis
+                point = np.zeros(2)
+                point[axis] = b[i] / A[i][axis]
                 
-    return np.array(vertices)
+                # Check if point satisfies all constraints
+                if (point[axis] >= 0 and 
+                    all(np.dot(A[k], point) <= b[k] + 1e-10 for k in range(num_constraints))):
+                    vertices.append(point)
+
+    # Convert to numpy array and clean up
+    if len(vertices) > 0:
+        vertices = np.array(vertices)
+        # Remove duplicates with tolerance
+        vertices = np.unique(np.round(vertices, decimals=10), axis=0)
+        # Remove points with negative coordinates (allowing small numerical errors)
+        vertices = vertices[np.all(vertices >= -1e-10, axis=1)]
+        
+        if len(vertices) >= 3:
+            # Sort vertices counterclockwise around centroid for proper polygon
+            centroid = vertices.mean(axis=0)
+            angles = np.arctan2(vertices[:, 1] - centroid[1], 
+                              vertices[:, 0] - centroid[0])
+            vertices = vertices[np.argsort(angles)]
+    
+    return vertices if len(vertices) > 0 else np.array([[0, 0]])
+
+def update_plot_bounds(ax, vertices, A, b):
+    """
+    Set appropriate plot bounds that show the full feasible region
+    """
+    if len(vertices) > 0:
+        # Get the range of vertices
+        min_x, min_y = vertices.min(axis=0)
+        max_x, max_y = vertices.max(axis=0)
+        
+        # Calculate ranges
+        x_range = max_x - min_x
+        y_range = max_y - min_y
+        
+        # Add padding (20% of range or minimum of 2 units)
+        padding_x = max(x_range * 0.2, 2)
+        padding_y = max(y_range * 0.2, 2)
+        
+        # Set limits with padding
+        plt.xlim(max(0, min_x - padding_x), max_x + padding_x)
+        plt.ylim(max(0, min_y - padding_y), max_y + padding_y)
+    else:
+        # Fallback: use constraint coefficients to set bounds
+        coeff_max = max(abs(A.max()), abs(A.min()))
+        b_max = max(abs(b.max()), abs(b.min()))
+        max_val = max(b_max / coeff_max if coeff_max != 0 else b_max, 10)
+        plt.xlim(0, max_val * 1.2)
+        plt.ylim(0, max_val * 1.2)
 
 @ensure_csrf_cookie
 def solve_lp(request):
@@ -163,7 +234,7 @@ def solve_lp(request):
             vertices = get_vertices(A, b)
             if len(vertices) > 2:
                 hull = ConvexHull(vertices)
-                feasible_polygon = Polygon(vertices[hull.vertices], alpha=0.3, 
+                feasible_polygon = Polygon(vertices[hull.vertices], closed=True, alpha=0.3, 
                                          color='#94A3B8', label='Feasible Region')
                 ax.add_patch(feasible_polygon)
 
