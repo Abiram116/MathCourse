@@ -125,10 +125,8 @@ def get_vertices(A, b):
     # Convert to numpy array and clean up
     if len(vertices) > 0:
         vertices = np.array(vertices)
-        # Remove duplicates with tolerance
-        vertices = np.unique(np.round(vertices, decimals=10), axis=0)
-        # Remove points with negative coordinates (allowing small numerical errors)
-        vertices = vertices[np.all(vertices >= -1e-10, axis=1)]
+        vertices = np.unique(np.round(vertices, decimals=10), axis=0) # Remove duplicates
+        vertices = vertices[np.all(vertices >= -1e-10, axis=1)] # Remove invalid points
         
         if len(vertices) >= 3:
             # Sort vertices counterclockwise around centroid for proper polygon
@@ -140,30 +138,17 @@ def get_vertices(A, b):
     return vertices if len(vertices) > 0 else np.array([[0, 0]])
 
 def update_plot_bounds(ax, vertices, A, b):
-    """
-    Set appropriate plot bounds that show the full feasible region
-    """
     if len(vertices) > 0:
-        # Get the range of vertices
-        min_x, min_y = vertices.min(axis=0)
-        max_x, max_y = vertices.max(axis=0)
+        min_coords = vertices.min(axis=0)
+        max_coords = vertices.max(axis=0)
+        ranges = max_coords - min_coords
+        paddings = np.maximum(ranges * 0.2, 2)
         
-        # Calculate ranges
-        x_range = max_x - min_x
-        y_range = max_y - min_y
-        
-        # Add padding (20% of range or minimum of 2 units)
-        padding_x = max(x_range * 0.2, 2)
-        padding_y = max(y_range * 0.2, 2)
-        
-        # Set limits with padding
-        plt.xlim(max(0, min_x - padding_x), max_x + padding_x)
-        plt.ylim(max(0, min_y - padding_y), max_y + padding_y)
+        plt.xlim(max(0, min_coords[0] - paddings[0]), max_coords[0] + paddings[0])
+        plt.ylim(max(0, min_coords[1] - paddings[1]), max_coords[1] + paddings[1])
     else:
-        # Fallback: use constraint coefficients to set bounds
-        coeff_max = max(abs(A.max()), abs(A.min()))
-        b_max = max(abs(b.max()), abs(b.min()))
-        max_val = max(b_max / coeff_max if coeff_max != 0 else b_max, 10)
+        coeff_max = max(abs(np.max(A)), abs(np.min(A)))
+        max_val = max(max(abs(np.max(b)), abs(np.min(b))) / (coeff_max or 1), 10)
         plt.xlim(0, max_val * 1.2)
         plt.ylim(0, max_val * 1.2)
 
@@ -219,30 +204,19 @@ def solve_lp(request):
 
             # Plot constraints
             for i, (a_i, b_i) in enumerate(zip(A, b)):
+                color = colors[i % len(colors)]
                 if a_i[1] != 0:
                     y = (b_i - a_i[0] * x) / a_i[1]
-
-                    # Check if the constraint is in the form of a negative or positive inequality
-                    if a_i[0] >= 0 and a_i[1] >= 0:  # Direct constraint form (positive)
-                        original_constraint = f'{a_i[0]:.1f}x + {a_i[1]:.1f}y ≤ {b_i:.1f}'
-                    elif a_i[0] < 0 and a_i[1] < 0:  # If both terms are negative
-                        # Multiply by -1 and change the inequality to '≥'
-                        original_constraint = f'{-a_i[0]:.1f}x + {-a_i[1]:.1f}y ≥ {-b_i:.1f}'
-                    elif a_i[0] < 0 and a_i[1] >= 0:  # If only x term is negative
-                        # Multiply by -1 and change the inequality to '≥'
-                        original_constraint = f'{-a_i[0]:.1f}x + {a_i[1]:.1f}y ≥ {-b_i:.1f}'
-                    elif a_i[0] >= 0 and a_i[1] < 0:  # If only y term is negative
-                        # Multiply by -1 and change the inequality to '≥'
-                        original_constraint = f'{a_i[0]:.1f}x - {-a_i[1]:.1f}y ≥ {-b_i:.1f}'
-                    
-                    # Plot the constraint with the transformed values
-                    plt.plot(x, y, color=colors[i % len(colors)], 
-                            label=original_constraint, linewidth=2.5)
+                    # Simplify constraint label generation
+                    signs = ['-' if coeff < 0 else '+' for coeff in a_i]
+                    coeffs = [abs(coeff) for coeff in a_i]
+                    sign = '≤' if all(coeff >= 0 for coeff in a_i) else '≥'
+                    label = f'{coeffs[0]:.1f}x {signs[1]} {coeffs[1]:.1f}y {sign} {abs(b_i):.1f}'
+                    plt.plot(x, y, color=color, label=label, linewidth=2.5)
                 else:
-                    # For vertical lines (x constraint), handle it differently
-                    original_constraint = f'x ≤ {b_i / a_i[0]:.1f}' if a_i[0] > 0 else f'x ≥ {b_i / a_i[0]:.1f}'
-                    plt.axvline(x=b_i / a_i[0], color=colors[i % len(colors)], 
-                                label=original_constraint, linewidth=2.5)
+                    plt.axvline(x=b_i/a_i[0], color=color, 
+                            label=f'x {"≤" if a_i[0] > 0 else "≥"} {b_i/a_i[0]:.1f}', 
+                            linewidth=2.5)
 
             # Plot feasible region
             vertices = get_vertices(A, b)
@@ -257,7 +231,7 @@ def solve_lp(request):
                     markersize=15, label='Optimal Point')
             plt.annotate(f'({res.x[0]:.2f}, {res.x[1]:.2f})', 
                         (res.x[0], res.x[1]),
-                        xytext=(10, 10), 
+                        xytext=(10, 10),
                         textcoords='offset points',
                         color='white', 
                         fontsize=12, 
@@ -276,11 +250,8 @@ def solve_lp(request):
             plt.title('Linear Programming Solution', color='white', 
                      fontsize=16, pad=20, fontweight='bold')
 
-            legend = plt.legend(loc='upper left', 
-                              frameon=True,
-                              facecolor='#1F2937', 
-                              edgecolor='#4B5563',
-                              fontsize=12)
+            legend = plt.legend(loc='upper left', frameon=True, 
+                                facecolor='#1F2937', edgecolor='#4B5563', fontsize=12)
             plt.setp(legend.get_texts(), color='white')
 
             for spine in ax.spines.values():
