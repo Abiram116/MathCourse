@@ -221,11 +221,28 @@ def solve_lp(request):
             for i, (a_i, b_i) in enumerate(zip(A, b)):
                 if a_i[1] != 0:
                     y = (b_i - a_i[0] * x) / a_i[1]
+
+                    # Check if the constraint is in the form of a negative or positive inequality
+                    if a_i[0] >= 0 and a_i[1] >= 0:  # Direct constraint form (positive)
+                        original_constraint = f'{a_i[0]:.1f}x + {a_i[1]:.1f}y ≤ {b_i:.1f}'
+                    elif a_i[0] < 0 and a_i[1] < 0:  # If both terms are negative
+                        # Multiply by -1 and change the inequality to '≥'
+                        original_constraint = f'{-a_i[0]:.1f}x + {-a_i[1]:.1f}y ≥ {-b_i:.1f}'
+                    elif a_i[0] < 0 and a_i[1] >= 0:  # If only x term is negative
+                        # Multiply by -1 and change the inequality to '≥'
+                        original_constraint = f'{-a_i[0]:.1f}x + {a_i[1]:.1f}y ≥ {-b_i:.1f}'
+                    elif a_i[0] >= 0 and a_i[1] < 0:  # If only y term is negative
+                        # Multiply by -1 and change the inequality to '≥'
+                        original_constraint = f'{a_i[0]:.1f}x - {-a_i[1]:.1f}y ≥ {-b_i:.1f}'
+                    
+                    # Plot the constraint with the transformed values
                     plt.plot(x, y, color=colors[i % len(colors)], 
-                            label=f'{a_i[0]}x + {a_i[1]}y ≤ {b_i}', linewidth=2.5)
+                            label=original_constraint, linewidth=2.5)
                 else:
+                    # For vertical lines (x constraint), handle it differently
+                    original_constraint = f'x ≤ {b_i / a_i[0]:.1f}' if a_i[0] > 0 else f'x ≥ {b_i / a_i[0]:.1f}'
                     plt.axvline(x=b_i / a_i[0], color=colors[i % len(colors)], 
-                               label=f'x ≤ {b_i / a_i[0]}', linewidth=2.5)
+                                label=original_constraint, linewidth=2.5)
 
             # Plot feasible region
             vertices = get_vertices(A, b)
