@@ -213,7 +213,7 @@ def solve_lp(request):
             plt.style.use('dark_background')
             fig, ax = plt.subplots(figsize=(16, 12))
 
-            colors = ['#10B981', '#3B82F6', '#8B5CF6', '#F59E0B', '#EC4899']
+            colors = ['#10B981', '#3B82F6', '#8B5CF6', '#F59E0B', '#EC4899', '#F43F5E', '#4CAF50', '#FF5722', '#9C27B0', '#2196F3', '#FFEB3B', '#009688']
             max_x = max(20, np.max(b) / 2)
             x = np.linspace(0, max_x, 400)
 
