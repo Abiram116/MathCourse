@@ -15,6 +15,7 @@
     <div class="page-transition"></div>
     <div id="preload-container" class="fixed inset-0 z-[999] hidden"></div>
 
+    <!-- Rest of your HTML remains exactly the same until the script tag -->
     <div class="menu-button">
         <span></span>
         <span></span>
@@ -85,7 +86,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Create animated background
+            // All your existing functions remain the same
             function createBackground() {
                 const container = document.createElement('div');
                 container.style.position = 'fixed';
@@ -174,33 +175,52 @@
                 }
             });
 
-            // Page transition effect
+            // page transition effect
             async function handleExploreClick(e) {
                 e.preventDefault();
                 const href = e.currentTarget.getAttribute('href');
+                const transition = document.querySelector('.page-transition');
                 const preloadContainer = document.getElementById('preload-container');
                 
+                const rect = e.currentTarget.getBoundingClientRect();
+                const startX = rect.left + rect.width / 2;
+                const startY = rect.top + rect.height / 2;
+                
+                transition.style.left = `${startX}px`;
+                transition.style.top = `${startY}px`;
+
+                // Start preloading the next page
                 try {
                     const response = await fetch(href);
                     const html = await response.text();
                     
+                    // Extract the content we want to show (assuming it's the main content)
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
                     preloadContainer.innerHTML = html;
                     preloadContainer.style.display = 'block';
                     
-                    gsap.to(document.body, {
-                        opacity: 0,
-                        duration: 0.3,
-                        onComplete: () => {
-                            window.location.href = href;
-                        }
-                    });
+                    // Animate the transition
+                    gsap.timeline()
+                        .to(transition, {
+                            scale: 5,
+                            duration: 0.8,
+                            ease: "power2.in"
+                        })
+                        .to(document.body, {
+                            opacity: 0,
+                            duration: 0.2,
+                            onComplete: () => {
+                                window.location.href = href;
+                            }
+                        });
                 } catch (error) {
                     console.error('Error preloading page:', error);
-                    window.location.href = href;
+                    window.location.href = href; // Fallback to normal navigation
                 }
             }
 
-            // Add click handlers to explore buttons
+            // Add click handlers to explore buttons with the updated transition
             document.querySelectorAll('a[href^="/"]').forEach(link => {
                 link.addEventListener('click', handleExploreClick);
             });
