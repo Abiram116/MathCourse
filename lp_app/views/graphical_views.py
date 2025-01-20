@@ -202,21 +202,21 @@ def solve_lp(request):
             max_x = max(20, np.max(b) / 2)
             x = np.linspace(0, max_x, 400)
 
-            # Plot constraints
             for i, (a_i, b_i) in enumerate(zip(A, b)):
-                color = colors[i % len(colors)]
                 if a_i[1] != 0:
                     y = (b_i - a_i[0] * x) / a_i[1]
-                    # Simplify constraint label generation
-                    signs = ['-' if coeff < 0 else '+' for coeff in a_i]
-                    coeffs = [abs(coeff) for coeff in a_i]
-                    sign = '≤' if all(coeff >= 0 for coeff in a_i) else '≥'
-                    label = f'{coeffs[0]:.1f}x {signs[1]} {coeffs[1]:.1f}y {sign} {abs(b_i):.1f}'
-                    plt.plot(x, y, color=color, label=label, linewidth=2.5)
+                    if a_i[0] >= 0 and a_i[1] >= 0:
+                        original_constraint = f'{a_i[0]:.1f}x + {a_i[1]:.1f}y ≤ {b_i:.1f}'
+                    elif a_i[0] < 0 and a_i[1] < 0:
+                        original_constraint = f'{-a_i[0]:.1f}x + {-a_i[1]:.1f}y ≥ {-b_i:.1f}'
+                    elif a_i[0] < 0 and a_i[1] >= 0:
+                        original_constraint = f'{-a_i[0]:.1f}x + {a_i[1]:.1f}y ≥ {-b_i:.1f}'
+                    elif a_i[0] >= 0 and a_i[1] < 0:
+                        original_constraint = f'{a_i[0]:.1f}x - {-a_i[1]:.1f}y ≥ {-b_i:.1f}'
+                    plt.plot(x, y, color=colors[i % len(colors)], label=original_constraint, linewidth=2.5)
                 else:
-                    plt.axvline(x=b_i/a_i[0], color=color, 
-                            label=f'x {"≤" if a_i[0] > 0 else "≥"} {b_i/a_i[0]:.1f}', 
-                            linewidth=2.5)
+                    original_constraint = f'x ≤ {b_i / a_i[0]:.1f}' if a_i[0] > 0 else f'x ≥ {b_i / a_i[0]:.1f}'
+                    plt.axvline(x=b_i / a_i[0], color=colors[i % len(colors)], label=original_constraint, linewidth=2.5)
 
             # Plot feasible region
             vertices = get_vertices(A, b)
