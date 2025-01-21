@@ -1,18 +1,22 @@
 # lp_app/views/__init__.py
-
-from .base_views import (
+from lp_app.views.base_views import (
     home
 )
 
-
-from .graphical_views import (
+from lp_app.views.graphical_views import (
     graphical_solver,
     solve_lp
 )
 
-# This makes the views available when importing from lp_app.views
+from lp_app.views.simplex_views import (
+    simplex_solver_view,
+    solve_simplex_lp
+)
+
 __all__ = [
     'home',
     'graphical_solver',
-    'solve_lp'
+    'solve_lp',
+    'simplex_solver_view',
+    'solve_simplex_lp'
 ]

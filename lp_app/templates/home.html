@@ -86,7 +86,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // All your existing functions remain the same
+            // Background creation function
             function createBackground() {
                 const container = document.createElement('div');
                 container.style.position = 'fixed';
@@ -94,7 +94,7 @@
                 container.style.zIndex = '0';
                 container.style.overflow = 'hidden';
                 document.body.prepend(container);
-
+        
                 // Create stars
                 for (let i = 0; i < 50; i++) {
                     const star = document.createElement('div');
@@ -102,7 +102,7 @@
                     star.style.left = `${Math.random() * 100}%`;
                     star.style.top = `${Math.random() * 100}%`;
                     container.appendChild(star);
-
+        
                     gsap.to(star, {
                         opacity: Math.random() * 0.5 + 0.5,
                         scale: Math.random() * 1 + 1,
@@ -112,7 +112,7 @@
                         ease: "power1.inOut"
                     });
                 }
-
+        
                 // Create lines
                 for (let i = 0; i < 8; i++) {
                     const line = document.createElement('div');
@@ -123,11 +123,10 @@
                     const rotation = Math.random() * 20 - 10;
                     line.style.setProperty('--rotation', `${rotation}deg`);
                     container.appendChild(line);
-                
                     line.style.animationDelay = `-${Math.random() * 15}s`;
                 }
             }
-
+        
             // Menu functionality
             const menuBtn = document.querySelector('.menu-button');
             const menu = document.querySelector('.nav-menu');
@@ -136,46 +135,90 @@
                 menuBtn.classList.toggle('open');
                 menu.classList.toggle('open');
             });
-
-            // Slide functionality
+        
+            // Slider functionality
             const sliderContainer = document.querySelector('.slider-container');
             const slides = document.querySelectorAll('.method-slide');
             let currentSlideIndex = 0;
             let isAnimating = false;
-
-            function slideToIndex(index, direction) {
+        
+            function slideToIndex(index) {
                 if (isAnimating) return;
                 isAnimating = true;
-
-                const slideWidth = slides[0].offsetWidth;
+        
+                // Handle cyclic navigation
+                if (index < 0) {
+                    index = slides.length - 1;
+                } else if (index >= slides.length) {
+                    index = 0;
+                }
+        
+                currentSlideIndex = index;
+                const slideWidth = window.innerWidth;
                 const newPosition = -index * slideWidth;
-                const duration = 0.4;
-
+        
                 gsap.to(sliderContainer, {
                     x: newPosition,
-                    duration: duration,
-                    ease: "power2.inOut",
+                    duration: 0.5,
+                    ease: "cubic-bezier(0.4, 0, 0.2, 1)",
                     onComplete: () => {
                         isAnimating = false;
                     }
                 });
             }
-
-            document.getElementById('nextSlide').addEventListener('click', () => {
-                if (currentSlideIndex < slides.length - 1) {
-                    currentSlideIndex++;
-                    slideToIndex(currentSlideIndex, 'right');
+        
+            // Navigation event listeners
+            document.getElementById('nextSlide').addEventListener('click', (e) => {
+                e.preventDefault();
+                slideToIndex(currentSlideIndex + 1);
+            });
+        
+            document.getElementById('prevSlide').addEventListener('click', (e) => {
+                e.preventDefault();
+                slideToIndex(currentSlideIndex - 1);
+            });
+        
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight') {
+                    slideToIndex(currentSlideIndex + 1);
+                } else if (e.key === 'ArrowLeft') {
+                    slideToIndex(currentSlideIndex - 1);
                 }
             });
-
-            document.getElementById('prevSlide').addEventListener('click', () => {
-                if (currentSlideIndex > 0) {
-                    currentSlideIndex--;
-                    slideToIndex(currentSlideIndex, 'left');
+        
+            // Touch functionality
+            let touchStartX = 0;
+            let touchEndX = 0;
+        
+            sliderContainer.addEventListener('touchstart', (e) => {
+                touchStartX = e.touches[0].clientX;
+            });
+        
+            sliderContainer.addEventListener('touchmove', (e) => {
+                touchEndX = e.touches[0].clientX;
+            });
+        
+            sliderContainer.addEventListener('touchend', () => {
+                const swipeDistance = touchStartX - touchEndX;
+                if (Math.abs(swipeDistance) > 50) {
+                    if (swipeDistance > 0) {
+                        slideToIndex(currentSlideIndex + 1);
+                    } else {
+                        slideToIndex(currentSlideIndex - 1);
+                    }
                 }
             });
-
-            // page transition effect
+        
+            // Handle window resize
+            function handleResize() {
+                const newPosition = -currentSlideIndex * window.innerWidth;
+                gsap.set(sliderContainer, { x: newPosition });
+            }
+        
+            window.addEventListener('resize', handleResize);
+        
+            // Page transition effect
             async function handleExploreClick(e) {
                 e.preventDefault();
                 const href = e.currentTarget.getAttribute('href');
@@ -188,19 +231,14 @@
                 
                 transition.style.left = `${startX}px`;
                 transition.style.top = `${startY}px`;
-
-                // Start preloading the next page
+        
                 try {
                     const response = await fetch(href);
                     const html = await response.text();
                     
-                    // Extract the content we want to show (assuming it's the main content)
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, 'text/html');
                     preloadContainer.innerHTML = html;
                     preloadContainer.style.display = 'block';
                     
-                    // Animate the transition
                     gsap.timeline()
                         .to(transition, {
                             scale: 5,
@@ -216,16 +254,16 @@
                         });
                 } catch (error) {
                     console.error('Error preloading page:', error);
-                    window.location.href = href; // Fallback to normal navigation
+                    window.location.href = href;
                 }
             }
-
-            // Add click handlers to explore buttons with the updated transition
+        
+            // Add click handlers for page transitions
             document.querySelectorAll('a[href^="/"]').forEach(link => {
                 link.addEventListener('click', handleExploreClick);
             });
-
-            // Initialize everything
+        
+            // Initialize background
             createBackground();
         });
     </script>
