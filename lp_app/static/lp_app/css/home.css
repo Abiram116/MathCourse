@@ -4,6 +4,7 @@
    body {
     overflow: hidden;
     margin: 0;
+    text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
@@ -11,6 +12,11 @@
 /* ==========================================================================
    Typography
    ========================================================================== */
+@font-face {
+    font-family: 'Playfair Display';
+    font-display: swap;
+}
+
 .method-title {
     font-family: 'Playfair Display', serif;
     transition: opacity 0.3s ease;
@@ -21,6 +27,11 @@
     font-weight: 400;
     font-size: clamp(2rem, 5vw, 5rem);
     line-height: 1.2;
+    margin: 0 auto 1rem;
+    max-width: 90%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    transform: translateZ(0);
 }
 
 /* ==========================================================================
@@ -36,6 +47,8 @@
     z-index: 200;
     cursor: pointer;
     padding: 10px;
+    transform: translateZ(0);
+    backface-visibility: hidden;
 }
 
 .menu-button span {
@@ -64,19 +77,20 @@
 .nav-menu {
     position: fixed;
     top: 0;
-    left: -100%;
+    left: 0;
     width: 100%;
     height: 100vh;
     background: rgba(17, 24, 39, 0.95);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 100;
     overflow-y: auto;
+    transform: translateX(-100%);
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .nav-menu.open {
-    left: 0;
+    transform: translateX(0);
 }
 
 /* Navigation Arrows */
@@ -112,20 +126,35 @@
 }
 
 .slider-container {
-    position: relative;
+    position: absolute;
+    width: max-content;
+    min-width: 100%;
     height: 100vh;
     display: flex;
     transform: translateX(0);
     will-change: transform;
     touch-action: pan-y pinch-zoom;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .method-slide {
     position: relative;
-    height: 100vh;
+    min-height: 100vh;
     width: 100vw;
-    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: translateZ(0);
+}
+
+.method-slide > .absolute {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* ==========================================================================
@@ -140,6 +169,7 @@
     border-radius: 50%;
     box-shadow: 0 0 3px rgba(255, 255, 255, 0.8);
     pointer-events: none;
+    will-change: transform;
 }
 
 /* Animated Lines */
@@ -150,6 +180,7 @@
     background: linear-gradient(90deg, transparent, white, transparent);
     animation: moveLine 15s linear infinite;
     pointer-events: none;
+    will-change: transform;
 }
 
 @keyframes moveLine {
@@ -185,10 +216,11 @@
     width: 100vw;
     height: 100vh;
     background: white;
-    transform: scale(0);
+    transform: scale(0) translateZ(0);
     border-radius: 50%;
     z-index: 1000;
     pointer-events: none;
+    backface-visibility: hidden;
 }
 
 /* ==========================================================================
@@ -233,6 +265,14 @@
 }
 
 /* ==========================================================================
+   Scrollbar
+   ========================================================================== */
+::-webkit-scrollbar {
+    width: 0;
+    background: transparent;
+}
+
+/* ==========================================================================
    Media Queries
    ========================================================================== */
 @media (max-width: 768px) {
@@ -266,5 +306,16 @@
 @supports (-webkit-touch-callout: none) {
     .slider-container {
         -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* Windows-specific fixes */
+@supports (-ms-ime-align: auto) {
+    .method-slide {
+        transform: translateZ(0);
+    }
+    
+    .slide-title {
+        transform: translateZ(0);
     }
 }
