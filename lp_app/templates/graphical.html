@@ -51,6 +51,18 @@
             height: 24px;
             fill: #4ade80;
         }
+        .clear-button {
+            background: rgba(59, 130, 246, 0.2); 
+            color: #3b82f6; 
+            border: 1px solid #3b82f6; 
+            transition: all 0.3s ease;
+        }
+
+        .clear-button:hover {
+            background: rgba(59, 130, 246, 0.3); 
+            color: #4ade80; 
+            border-color: #4ade80;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-gray-900 to-gray-800 text-gray-100 min-h-screen overflow-x-hidden flex items-center">
@@ -102,10 +114,16 @@
                             <p class="mt-2 text-sm text-gray-400">Separate constraints with semicolons (;)</p>
                         </div>
 
-                        <button type="submit" id="solveBtn"
-                            class="w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-medium py-3 px-6 rounded-xl transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 focus:ring-offset-gray-800 opacity-0 transform hover:scale-[1.02]">
-                            Solve
-                        </button>
+                        <div class="flex space-x-4">
+                            <button type="submit" id="solveBtn"
+                                class="flex-grow bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-medium py-3 px-6 rounded-xl transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 focus:ring-offset-gray-800 opacity-0 transform hover:scale-[1.02]">
+                                Solve
+                            </button>
+                            <button type="button" id="clearBtn"
+                                class="clear-button flex-shrink-0 bg-red-500/20 text-red-500 font-medium py-3 px-4 rounded-xl transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:ring-offset-gray-800 opacity-0 transform hover:scale-[1.02]">
+                                Clear
+                            </button>
+                        </div>
                     </form>
                     <div id="error-message" class="text-red-400 mt-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/50 hidden"></div>
                 </div>
@@ -147,7 +165,7 @@
                 ease: 'back.out'
             });
 
-            gsap.to('#solveBtn', {
+            gsap.to('#solveBtn, #clearBtn', {
                 opacity: 1,
                 y: 0,
                 duration: 0.8,
@@ -158,10 +176,26 @@
 
         // Form submission handler
         const form = document.getElementById('lp-form');
+        const clearBtn = document.getElementById('clearBtn');
         const errorMessage = document.getElementById('error-message');
         const solutionContainer = document.getElementById('solution-container');
         const graphContainer = document.getElementById('graph-container');
         const solutionImage = document.getElementById('solution-image');
+        const optimizationType = document.getElementById('optimization_type');
+        const objectiveInput = document.getElementById('objective');
+        const constraintsInput = document.getElementById('constraints');
+
+        // Clear form function
+        clearBtn.addEventListener('click', function() {
+            optimizationType.selectedIndex = 0;
+            objectiveInput.value = '';
+            constraintsInput.value = '';
+            
+            // Hide results and error message
+            solutionContainer.classList.add('hidden');
+            graphContainer.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+        });
 
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
