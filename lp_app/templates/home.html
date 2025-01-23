@@ -18,9 +18,11 @@
 
     <!-- Navigation Components -->
     <div class="menu-button">
-        <span></span>
-        <span></span>
-        <span></span>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
     </div>
 
     <nav class="nav-menu">
@@ -152,6 +154,13 @@
                 if (isAnimating) return;
                 isAnimating = true;
 
+                // Implement cyclic navigation
+                if (index >= slides.length) {
+                    index = 0;  // Go back to first slide
+                } else if (index < 0) {
+                    index = slides.length - 1;  // Go to last slide
+                }
+
                 const slideWidth = slides[0].offsetWidth;
                 const newPosition = -index * slideWidth;
                 const duration = 0.4;
@@ -162,22 +171,17 @@
                     ease: "power2.inOut",
                     onComplete: () => {
                         isAnimating = false;
+                        currentSlideIndex = index;  // Update current slide index
                     }
                 });
             }
 
             document.getElementById('nextSlide').addEventListener('click', () => {
-                if (currentSlideIndex < slides.length - 1) {
-                    currentSlideIndex++;
-                    slideToIndex(currentSlideIndex);
-                }
+                slideToIndex(currentSlideIndex + 1);
             });
 
             document.getElementById('prevSlide').addEventListener('click', () => {
-                if (currentSlideIndex > 0) {
-                    currentSlideIndex--;
-                    slideToIndex(currentSlideIndex);
-                }
+                slideToIndex(currentSlideIndex - 1);
             });
 
             // Page transition effect
