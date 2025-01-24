@@ -38,7 +38,7 @@
    Navigation Components
    ========================================================================== */
 /* Menu Button */
-.menu-button {
+/* .menu-button {
     width: 30px;
     height: 20px;
     position: fixed;
@@ -71,7 +71,19 @@
 
 .menu-button.open span:nth-child(3) {
     transform: rotate(45deg) translate(-5px, -6px);
+} */
+/* .menu-icon,
+.close-icon {
+    transition: opacity 0.3s ease;
 }
+
+.menu-button.open .menu-icon {
+    display: none;
+}
+
+.menu-button.open .close-icon {
+    display: block;
+} */
 
 /* Navigation Menu */
 .nav-menu {
