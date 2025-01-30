@@ -53,6 +53,20 @@
             color: #4ade80; 
             border-color: #4ade80; 
         }
+
+        #mainContainer {
+            opacity: 0;
+        }
+        
+        .form-group {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        #solveBtn, #clearBtn {
+            opacity: 0;
+            transform: translateY(20px);
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-gray-900 to-gray-800 text-gray-100 min-h-screen overflow-x-hidden flex items-center">
@@ -142,29 +156,58 @@
     <script>
             // GSAP Animations
             document.addEventListener('DOMContentLoaded', () => {
-                gsap.to('#mainContainer', {
-                    opacity: 1,
-                    duration: 1,
-                    ease: 'power2.out'
+                // Make back button visible first with initial properties
+                gsap.set('.back-button', {
+                    opacity: 0,
+                    x: -50
                 });
 
-                gsap.to('.form-group', {
+                // Create a timeline for better control
+                const tl = gsap.timeline({
+                    defaults: {
+                        ease: 'power2.out',
+                        duration: 0.8
+                    }
+                });
+
+                // Initial fade in of the main container
+                tl.to('#mainContainer', {
+                    opacity: 1,
+                    duration: 1
+                })
+                
+                // Title animation
+                .from('h1', {
+                    y: -50,
+                    opacity: 0,
+                    duration: 0.8
+                }, "-=0.5")
+
+                // Back button animation
+                .to('.back-button', {
+                    x: 0,
+                    opacity: 1,
+                    duration: 0.6
+                }, "-=0.6")
+
+                // Form groups staggered animation
+                .to('.form-group', {
                     opacity: 1,
                     y: 0,
                     stagger: 0.2,
                     duration: 0.8,
                     ease: 'back.out'
-                });
+                }, "-=0.4")
 
-                gsap.to('#solveBtn, #clearBtn', {
+                // Buttons animation
+                .to('#solveBtn, #clearBtn', {
                     opacity: 1,
                     y: 0,
                     duration: 0.8,
-                    delay: 0.8,
+                    stagger: 0.1,
                     ease: 'back.out'
-                });
+                }, "-=0.2");
             });
-
             // Form submission handler
             const form = document.getElementById('lp-form');
             const clearBtn = document.getElementById('clearBtn');

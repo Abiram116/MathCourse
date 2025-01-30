@@ -1,0 +1,179 @@
+select option {
+    background-color: #374151;
+    color: white;
+}
+.title-wrapper {
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+}
+
+.title-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 2rem 0;
+}
+
+.title-gradient {
+    background: linear-gradient(to right, #10b981, #3b82f6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-align: center;
+    width: 100%;
+    padding: 0.5rem 0;
+    line-height: 1.4;
+}
+
+/* Ensure container has enough space */
+#mainContainer {
+    padding-top: 4rem;
+    min-height: 100vh;
+}
+
+/* Updated MathQuill Styling */
+.mq-editable-field {
+    width: 100% !important;
+    background: #374151 !important;
+    border: 1px solid #4B5563 !important;
+    border-radius: 0.75rem !important;
+    color: white !important;
+    transition: all 0.2s ease-in-out !important;
+    margin-bottom: 0 !important;
+    box-shadow: none !important;
+    min-height: 48px !important;
+    display: flex !important;
+    align-items: center !important;
+    padding: 0 16px !important;
+    position: relative !important;
+}
+
+.mq-editable-field.mq-focused {
+    border-color: #4ade80 !important;
+    box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.2) !important;
+}
+
+.mq-root-block {
+    position: relative !important;
+    z-index: 2 !important;
+    min-height: 48px !important;
+    display: flex !important;
+    align-items: center !important;
+    padding: 0 !important;
+}
+
+/* Improved placeholder styling */
+.mq-editable-field.mq-empty:before {
+    content: attr(data-placeholder);
+    color: rgba(255, 255, 255, 0.4) !important;
+    position: absolute !important;
+    left: 16px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    pointer-events: none !important;
+    font-size: 16px !important;
+    z-index: 1 !important;
+}
+
+/* Hide placeholder when field is focused or has content */
+.mq-editable-field.mq-focused:before,
+.mq-editable-field:not(.mq-empty):before {
+    display: none;
+}
+
+.mq-editable-field .mq-root-block {
+    display: flex !important;
+    align-items: center !important;
+    min-height: 48px !important;
+}
+
+/* Fix cursor and text alignment */
+.mq-cursor {
+    border-left: 1px solid #fff !important;
+    margin-left: -1px !important;
+    border-color: #fff !important;
+    visibility: visible !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+.mq-math-mode .mq-root-block {
+    align-items: center !important;
+    justify-content: flex-start !important;
+    min-height: 48px !important;
+}
+
+/* Fix text color for all MathQuill elements */
+.mq-math-mode,
+.mq-math-mode .mq-non-leaf,
+.mq-math-mode .mq-digit,
+.mq-math-mode var,
+.mq-math-mode .mq-operator-name,
+.mq-math-mode .mq-paren {
+    color: white !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+/* Fix selection color */
+.mq-math-mode .mq-selection,
+.mq-editable-field .mq-selection {
+    background: rgba(74, 222, 128, 0.3) !important;
+    color: white !important;
+}
+
+/* Additional styles for your other elements */
+.clear-button {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+    border: 1px solid #3b82f6;
+    transition: all 0.3s ease;
+}
+
+.clear-button:hover {
+    background: rgba(59, 130, 246, 0.3);
+    color: #4ade80;
+    border-color: #4ade80;
+}
+
+.back-button {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: rgba(17, 24, 39, 0.8);
+    backdrop-filter: blur(8px);
+    padding: 10px;
+    border-radius: 50%;
+    border: 1px solid rgba(75, 85, 99, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 50;
+}
+.back-button:hover {
+    transform: scale(1.1);
+    background: rgba(17, 24, 39, 0.9);
+}
+.back-arrow {
+    width: 24px;
+    height: 24px;
+    fill: #4ade80;
+}
+
+#mainContainer {
+    opacity: 0;
+}
+
+.back-button {
+    opacity: 0;
+    transform: translateX(-50px);
+}
+
+.form-group {
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+#solveBtn, #clearBtn {
+    opacity: 0;
+    transform: translateY(20px);
+}
