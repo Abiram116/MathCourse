@@ -199,41 +199,48 @@
                 const transition = document.querySelector('.page-transition');
                 const preloadContainer = document.getElementById('preload-container');
                 
+                // Get button position
                 const rect = e.currentTarget.getBoundingClientRect();
                 const startX = rect.left + rect.width / 2;
                 const startY = rect.top + rect.height / 2;
                 
+                // Set initial position and make visible
                 transition.style.left = `${startX}px`;
                 transition.style.top = `${startY}px`;
-
+                transition.style.display = 'block';
+                
                 try {
+                    // Preload the new page content first
                     const response = await fetch(href);
                     const html = await response.text();
                     
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, 'text/html');
+                    // Start the animation
+                    const tl = gsap.timeline();
+                    
+                    // First expand the transition circle
+                    await tl.to(transition, {
+                        scale: 50,
+                        duration: 0.8,
+                        ease: "power2.in"
+                    });
+                    
+                    // Then fade out current content
+                    await tl.to(document.body, {
+                        opacity: 0,
+                        duration: 0.2
+                    });
+                    
+                    // After animation completes, load new page
                     preloadContainer.innerHTML = html;
                     preloadContainer.style.display = 'block';
                     
-                    gsap.timeline()
-                        .to(transition, {
-                            scale: 5,
-                            duration: 0.8,
-                            ease: "power2.in"
-                        })
-                        .to(document.body, {
-                            opacity: 0,
-                            duration: 0.2,
-                            onComplete: () => {
-                                window.location.href = href;
-                            }
-                        });
+                    // Finally redirect
+                    window.location.href = href;
                 } catch (error) {
-                    console.error('Error preloading page:', error);
+                    console.error('Error during transition:', error);
                     window.location.href = href;
                 }
             }
-
             // Add click handlers to explore buttons
             document.querySelectorAll('a[href^="/"]').forEach(link => {
                 link.addEventListener('click', handleExploreClick);
