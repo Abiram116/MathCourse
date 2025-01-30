@@ -1,34 +1,47 @@
-select option {
-    background-color: #374151;
-    color: white;
-}
-.title-wrapper {
-    padding: 2rem 0;
-    margin-bottom: 2rem;
-}
-
-.title-container {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    padding: 2rem 0;
-}
-
 .title-gradient {
-    background: linear-gradient(to right, #10b981, #3b82f6);
+    background: linear-gradient(to right, #4ade80, #3b82f6);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    text-align: center;
-    width: 100%;
-    padding: 0.5rem 0;
-    line-height: 1.4;
+    text-shadow: 0 0 30px rgba(74, 222, 128, 0.2);
 }
 
-/* Ensure container has enough space */
-#mainContainer {
-    padding-top: 4rem;
-    min-height: 100vh;
+.back-button {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: rgba(17, 24, 39, 0.8);
+    backdrop-filter: blur(8px);
+    padding: 10px;
+    border-radius: 50%;
+    border: 1px solid rgba(75, 85, 99, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 50;
+}
+
+.back-button:hover {
+    transform: scale(1.1);
+    background: rgba(17, 24, 39, 0.9);
+}
+
+.back-arrow {
+    width: 24px;
+    height: 24px;
+    fill: #4ade80;
+}
+
+.clear-button {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+    border: 1px solid #3b82f6;
+    transition: all 0.3s ease;
+}
+
+.clear-button:hover {
+    background: rgba(59, 130, 246, 0.3);
+    color: #4ade80;
+    border-color: #4ade80;
 }
 
 /* MathQuill Styling */
@@ -62,7 +75,6 @@ select option {
     padding: 0 !important;
 }
 
-/* Updated placeholder styling to always show unless there's content */
 .mq-editable-field.mq-empty:before {
     content: attr(data-placeholder);
     color: rgba(255, 255, 255, 0.4) !important;
@@ -78,37 +90,13 @@ select option {
     transition: opacity 0.2s ease-in-out !important;
 }
 
-/* Only hide placeholder when there's content */
 .mq-editable-field:not(.mq-empty):before {
     opacity: 0 !important;
 }
 
-/* Remove the focus-based hiding */
 .mq-editable-field.mq-focused.mq-empty:before {
     display: block !important;
     opacity: 1 !important;
-}
-
-/* Rest of your existing styles remain the same */
-.mq-editable-field .mq-root-block {
-    display: flex !important;
-    align-items: center !important;
-    min-height: 48px !important;
-}
-
-.mq-cursor {
-    border-left: 1px solid #fff !important;
-    margin-left: -1px !important;
-    border-color: #fff !important;
-    visibility: visible !important;
-    display: inline-flex !important;
-    align-items: center !important;
-}
-
-.mq-math-mode .mq-root-block {
-    align-items: center !important;
-    justify-content: flex-start !important;
-    min-height: 48px !important;
 }
 
 .mq-math-mode,
@@ -128,18 +116,21 @@ select option {
     color: white !important;
 }
 
-/* Additional styles for your other elements */
-.clear-button {
-    background: rgba(59, 130, 246, 0.2);
-    color: #3b82f6;
-    border: 1px solid #3b82f6;
-    transition: all 0.3s ease;
+.mq-cursor {
+    border-left: 1px solid #fff !important;
+    margin-left: -1px !important;
+    border-color: #fff !important;
+    visibility: visible !important;
+    display: inline-flex !important;
+    align-items: center !important;
 }
 
-.clear-button:hover {
-    background: rgba(59, 130, 246, 0.3);
-    color: #4ade80;
-    border-color: #4ade80;
+select option {
+    background-color: #374151;
+    color: white;
+}
+#mainContainer {
+    opacity: 0;
 }
 
 .back-button {
@@ -154,24 +145,19 @@ select option {
     cursor: pointer;
     transition: all 0.3s ease;
     z-index: 50;
+    opacity: 0;
+    transform: translateX(-50px);
 }
+
 .back-button:hover {
     transform: scale(1.1);
     background: rgba(17, 24, 39, 0.9);
 }
+
 .back-arrow {
     width: 24px;
     height: 24px;
     fill: #4ade80;
-}
-
-#mainContainer {
-    opacity: 0;
-}
-
-.back-button {
-    opacity: 0;
-    transform: translateX(-50px);
 }
 
 .form-group {
@@ -182,4 +168,17 @@ select option {
 #solveBtn, #clearBtn {
     opacity: 0;
     transform: translateY(20px);
+}
+
+.clear-button {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+    border: 1px solid #3b82f6;
+    transition: all 0.3s ease;
+}
+
+.clear-button:hover {
+    background: rgba(59, 130, 246, 0.3);
+    color: #4ade80;
+    border-color: #4ade80;
 }

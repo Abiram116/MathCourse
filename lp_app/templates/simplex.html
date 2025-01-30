@@ -1,94 +1,38 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Linear Programming Solver</title>
+    <title>Simplex Method Solver</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <style>
-        select option {
-            background-color: #374151;
-            color: white;
-        }
-        .title-gradient {
-            background: linear-gradient(to right, #4ade80, #3b82f6);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 30px rgba(74, 222, 128, 0.2);
-            line-height: 1.2;
-        }
-        .back-button {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            background: rgba(17, 24, 39, 0.8);
-            backdrop-filter: blur(8px);
-            padding: 10px;
-            border-radius: 50%;
-            border: 1px solid rgba(75, 85, 99, 0.5);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            z-index: 50;
-        }
-        .back-button:hover {
-            transform: scale(1.1);
-            background: rgba(17, 24, 39, 0.9);
-        }
-        .back-arrow {
-            width: 24px;
-            height: 24px;
-            fill: #4ade80;
-        }
-        .clear-button {
-            background: rgba(59, 130, 246, 0.2);
-            color: #3b82f6; 
-            border: 1px solid #3b82f6;
-            transition: all 0.3s ease;
-        }
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.js"></script>
+    <link href="{% static 'lp_app/css/simplex.css' %}" rel="stylesheet">
 
-        .clear-button:hover {
-            background: rgba(59, 130, 246, 0.3); 
-            color: #4ade80; 
-            border-color: #4ade80; 
-        }
-
-        #mainContainer {
-            opacity: 0;
-        }
-        
-        .form-group {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        
-        #solveBtn, #clearBtn {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-    </style>
+    
 </head>
 <body class="bg-gradient-to-br from-gray-900 to-gray-800 text-gray-100 min-h-screen overflow-x-hidden flex items-center">
-    <!-- Back Button -->
     <a href="/" class="back-button" title="Back to Home">
         <svg class="back-arrow" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
         </svg>
     </a>
 
-    <div class="container mx-auto px-4 py-12 opacity-0 max-w-7xl" id="mainContainer">
-        <h1 class="text-5xl font-bold text-center mb-16 title-gradient pt-8">
+    <div class="container mx-auto px-4 py-12 max-w-7xl" id="mainContainer">
+        <h1 class="text-5xl font-bold text-center mb-16 title-gradient">
             Simplex Method Solver
         </h1>
         
         <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
-            <!-- Input Form -->
-            <div class="xl:col-span-6 xl:col-start-4 transform hover:scale-[1.02] transition-transform duration-300">
+            <div class="xl:col-span-6 xl:col-start-4">
                 <div class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-700/50">
                     <form id="lp-form" class="space-y-6">
+                        <input type="hidden" name="csrfmiddlewaretoken" id="csrf_token">
                         {% csrf_token %}
-                        <div class="form-group opacity-0">
+                        <div class="form-group">
                             <label class="block text-sm font-medium mb-2 text-green-400" for="optimization_type">
                                 Optimization Type
                             </label>
@@ -99,7 +43,7 @@
                             </select>
                         </div>
 
-                        <div class="form-group opacity-0">
+                        <div class="form-group">
                             <label class="block text-sm font-medium mb-2 text-green-400" for="variables">
                                 Number of Variables
                             </label>
@@ -107,41 +51,40 @@
                                 class="w-full bg-gray-700 text-white border border-gray-600 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-400 focus:border-transparent transition-colors duration-200" required>
                         </div>
 
-                        <div class="form-group opacity-0">
-                            <label class="block text-sm font-medium mb-2 text-green-400" for="objective">
+                        <div class="form-group">
+                            <label class="block text-sm font-medium mb-2 text-green-400">
                                 Objective Function
                             </label>
-                            <input type="text" id="objective" name="objective" 
-                                placeholder="e.g., 2a + 3b + 4c"
-                                class="w-full bg-gray-700 text-white border border-gray-600 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-400 focus:border-transparent transition-colors duration-200" required>
+                            <div id="objective-math"></div>
+                            <input type="hidden" id="objective" name="objective">
                         </div>
-                        
-                        <div class="form-group opacity-0">
-                            <label class="block text-sm font-medium mb-2 text-green-400" for="constraints">
+
+                        <div class="form-group">
+                            <label class="block text-sm font-medium mb-2 text-green-400">
                                 Constraints
                             </label>
-                            <input type="text" id="constraints" name="constraints"
-                                placeholder="e.g., a + 2b + c <= 10; 3a + 4b + 2c <= 15"
-                                class="w-full bg-gray-700 text-white border border-gray-600 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-400 focus:border-transparent transition-colors duration-200" required>
+                            <div id="constraints-math"></div>
+                            <input type="hidden" id="constraints" name="constraints">
                             <p class="mt-2 text-sm text-gray-400">Separate constraints with semicolons (;)</p>
                         </div>
 
-                        <button type="submit" id="solveBtn"
-                            class="w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-medium py-3 px-6 rounded-xl transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 focus:ring-offset-gray-800 opacity-0 transform hover:scale-[1.02]">
-                            Solve
-                        </button>
-                        <button type="button" id="clearBtn"
-                            class="clear-button flex-shrink-0 bg-red-500/20 text-red-500 font-medium py-3 px-4 rounded-xl transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:ring-offset-gray-800 opacity-0 transform hover:scale-[1.02]">
-                            Clear
-                        </button>
+                        <div class="flex space-x-4">
+                            <button type="submit" id="solveBtn"
+                                class="flex-grow bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-medium py-3 px-6 rounded-xl transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-400">
+                                Solve
+                            </button>
+                            <button type="button" id="clearBtn"
+                                class="clear-button px-4 py-3 rounded-xl transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                Clear
+                            </button>
+                        </div>
                     </form>
                     <div id="error-message" class="text-red-400 mt-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/50 hidden"></div>
                 </div>
             </div>
 
-            <!-- Results Section -->
             <div class="xl:col-span-6 xl:col-start-4">
-                <div id="solution-container" class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-700/50 hidden transform hover:scale-[1.02] transition-transform duration-300">
+                <div id="solution-container" class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-700/50 hidden">
                     <h2 class="text-2xl font-semibold mb-6 text-green-400">Solution</h2>
                     <div class="space-y-4">
                         <div id="solution" class="text-lg"></div>
@@ -154,143 +97,266 @@
     </div>
 
     <script>
-            // GSAP Animations
-            document.addEventListener('DOMContentLoaded', () => {
-                // Make back button visible first with initial properties
-                gsap.set('.back-button', {
-                    opacity: 0,
-                    x: -50
-                });
-
-                // Create a timeline for better control
-                const tl = gsap.timeline({
-                    defaults: {
-                        ease: 'power2.out',
-                        duration: 0.8
-                    }
-                });
-
-                // Initial fade in of the main container
-                tl.to('#mainContainer', {
-                    opacity: 1,
-                    duration: 1
-                })
-                
-                // Title animation
-                .from('h1', {
-                    y: -50,
-                    opacity: 0,
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set initial properties for back button
+            gsap.set('.back-button', {
+                opacity: 0,
+                x: -50
+            });
+        
+            // Create a timeline for better control
+            const tl = gsap.timeline({
+                defaults: {
+                    ease: 'power2.out',
                     duration: 0.8
-                }, "-=0.5")
-
-                // Back button animation
-                .to('.back-button', {
-                    x: 0,
-                    opacity: 1,
-                    duration: 0.6
-                }, "-=0.6")
-
-                // Form groups staggered animation
-                .to('.form-group', {
-                    opacity: 1,
-                    y: 0,
-                    stagger: 0.2,
-                    duration: 0.8,
-                    ease: 'back.out'
-                }, "-=0.4")
-
-                // Buttons animation
-                .to('#solveBtn, #clearBtn', {
-                    opacity: 1,
-                    y: 0,
-                    duration: 0.8,
-                    stagger: 0.1,
-                    ease: 'back.out'
-                }, "-=0.2");
+                }
             });
-            // Form submission handler
-            const form = document.getElementById('lp-form');
-            const clearBtn = document.getElementById('clearBtn');
-            const errorMessage = document.getElementById('error-message');
-            const solutionContainer = document.getElementById('solution-container');
+        
+            // Animation sequence
+            tl.to('#mainContainer', {
+                opacity: 1,
+                duration: 1
+            })
+            
+            // Title animation
+            .from('h1', {
+                y: -50,
+                opacity: 0,
+                duration: 0.8
+            }, "-=0.5")
+        
+            // Back button animation
+            .to('.back-button', {
+                x: 0,
+                opacity: 1,
+                duration: 0.6
+            }, "-=0.6")
+        
+            // Form groups staggered animation
+            .to('.form-group', {
+                opacity: 1,
+                y: 0,
+                stagger: 0.2,
+                duration: 0.8,
+                ease: 'back.out'
+            }, "-=0.4")
+        
+            // Buttons animation
+            .to('#solveBtn, #clearBtn', {
+                opacity: 1,
+                y: 0,
+                duration: 0.8,
+                stagger: 0.1,
+                ease: 'back.out'
+            }, "-=0.2");
+        });
 
+    
+
+        var MQ = MathQuill.getInterface(2);
+
+        // Initialize form elements
+        const form = document.getElementById('lp-form');
+        const clearBtn = document.getElementById('clearBtn');
+        const errorMessage = document.getElementById('error-message');
+        const solutionContainer = document.getElementById('solution-container');
+        const optimizationType = document.getElementById('optimization_type');
+        const variablesInput = document.getElementById('variables');
+
+        // Function to show error messages
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.remove('hidden');
+            solutionContainer.classList.add('hidden');
+        }
+
+        // Function to format constraints for backend
+        function formatConstraints(latex) {
+            // Replace MathQuill's \leq and \geq with <= and >= respectively
+            let formatted = latex
+                .replace(/\\leq/g, '<=')
+                .replace(/\\geq/g, '>=')
+                .replace(/\\le/g, '<=')
+                .replace(/\\ge/g, '>=');
+            
+            // Split constraints by semicolon and trim whitespace
+            return formatted.split(';')
+                .map(constraint => constraint.trim())
+                .filter(constraint => constraint.length > 0)
+                .join(';');
+        }
+
+        // Function to validate constraint format
+        function validateConstraints(constraints) {
+            const constraintsList = constraints.split(';')
+                .map(c => c.trim())
+                .filter(c => c.length > 0);
+
+            if (constraintsList.length === 0) {
+                throw new Error('Please enter at least one constraint');
+            }
+
+            for (let constraint of constraintsList) {
+                if (!constraint.includes('<=') && !constraint.includes('>=')) {
+                    throw new Error('Each constraint must include <= or >=');
+                }
+            }
+
+            return constraintsList;
+        }
+
+        // Function to format solution object
+        function formatSolution(solutionObj) {
+            return Object.entries(solutionObj)
+                .map(([variable, value]) => `${variable} = ${value.toFixed(2)}`)
+                .join(', ');
+        }
+
+        // Function to update solution display
+        function updateSolutionDisplay(result) {
+            const solutionDiv = document.getElementById('solution');
+            const optimalValueDiv = document.getElementById('optimal-value');
+            const iterationsDiv = document.getElementById('iterations');
+    
+            // Format the solution object
+            const formattedSolution = formatSolution(result.solution);
+            
+            solutionDiv.innerHTML = `<strong>Solution:</strong> ${formattedSolution}`;
+            optimalValueDiv.innerHTML = `<strong>Optimal Value:</strong> ${result.optimal_value.toFixed(2)}`;
+            iterationsDiv.innerHTML = `<strong>Iterations:</strong> ${result.iterations}`;
+    
+            solutionContainer.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+        }
+
+        // Get CSRF token from cookies
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set CSRF token
+            const csrfToken = getCookie('csrftoken');
+            document.getElementById('csrf_token').value = csrfToken;
+
+            // Initialize MathQuill fields
+            const objectiveMathField = MQ.MathField(document.getElementById('objective-math'), {
+                handlers: {
+                    edit: function() {
+                        document.getElementById('objective').value = objectiveMathField.latex();
+                        updatePlaceholderVisibility(objectiveMathField);
+                    }
+                },
+                spaceBehavesLikeTab: true,
+                restrictMismatchedBrackets: true
+            });
+
+            const constraintsMathField = MQ.MathField(document.getElementById('constraints-math'), {
+                handlers: {
+                    edit: function() {
+                        const latex = constraintsMathField.latex();
+                        document.getElementById('constraints').value = latex;
+                        updatePlaceholderVisibility(constraintsMathField);
+                    },
+                    enter: function() {
+                        constraintsMathField.typedText(';');
+                        return false;
+                    }
+                }
+            });
+
+            // Clear button handler
             clearBtn.addEventListener('click', function() {
-                // Reset form elements
-                document.getElementById('optimization_type').selectedIndex = 0;
-                document.getElementById('variables').value = '2';
-                document.getElementById('objective').value = '';
-                document.getElementById('constraints').value = '';
-                
-                // Hide solution and error message
-                document.getElementById('solution-container').classList.add('hidden');
-                document.getElementById('error-message').classList.add('hidden');
-                
-                // Clear solution text
-                document.getElementById('solution').textContent = '';
-                document.getElementById('optimal-value').textContent = '';
-                document.getElementById('iterations').textContent = '';
+                objectiveMathField.latex('');
+                constraintsMathField.latex('');
+                errorMessage.classList.add('hidden');
+                solutionContainer.classList.add('hidden');
+                updatePlaceholderVisibility(objectiveMathField);
+                updatePlaceholderVisibility(constraintsMathField);
             });
 
+            // Form submission handler
             form.addEventListener('submit', async function(e) {
                 e.preventDefault();
-
                 const submitBtn = this.querySelector('button[type="submit"]');
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<span class="inline-block animate-spin mr-2">↻</span> Solving...';
-                errorMessage.classList.add('hidden');
-
+                
                 try {
-                    const formData = {
-                        optimization_type: document.getElementById('optimization_type').value,
-                        variables: document.getElementById('variables').value,
-                        objective: document.getElementById('objective').value,
-                        constraints: document.getElementById('constraints').value
-                    };
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span class="inline-block animate-spin mr-2">↻</span> Solving...';
+                    
+                    const objective = document.getElementById('objective').value.trim();
+                    const constraints = formatConstraints(document.getElementById('constraints').value.trim());
 
-                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                    // Validate inputs
+                    if (!objective) {
+                        throw new Error('Please enter an objective function');
+                    }
+
+                    // Validate constraints format
+                    const constraintsList = validateConstraints(constraints);
+
+                    const formData = {
+                        optimization_type: optimizationType.value,
+                        variables: variablesInput.value,
+                        objective: objective,
+                        constraints: constraintsList.join(';')
+                    };
 
                     const response = await fetch('/simplex/solve/', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-CSRFToken': csrfToken
+                            'X-CSRFToken': csrfToken,
                         },
-                        body: JSON.stringify(formData),
-                        credentials: 'same-origin'
+                        body: JSON.stringify(formData)
                     });
 
                     if (!response.ok) {
-                        const errorData = await response.text();
-                        throw new Error(`Server error: ${errorData}`);
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Server error occurred');
                     }
 
                     const result = await response.json();
-
                     if (result.error) {
                         throw new Error(result.error);
                     }
 
-                    solutionContainer.classList.remove('hidden');
+                    updateSolutionDisplay(result);
 
-                    // Handle the solution object instead of array
-                    const solutionText = Object.entries(result.solution)
-                        .map(([variable, value]) => `${variable} = ${value.toFixed(4)}`)
-                        .join(', ');
-                        
-                    document.getElementById('solution').textContent = `Optimal Solution: ${solutionText}`;
-                    document.getElementById('optimal-value').textContent = `Optimal Value: ${result.optimal_value.toFixed(4)}`;
-                    document.getElementById('iterations').textContent = `Number of Iterations: ${result.iterations}`;
-
-                    // Smooth scroll to results
-                    solutionContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 } catch (error) {
-                    errorMessage.textContent = error.message;
-                    errorMessage.classList.remove('hidden');
+                    showError(error.message);
                 } finally {
                     submitBtn.disabled = false;
-                    submitBtn.textContent = 'Solve';
+                    submitBtn.innerHTML = 'Solve';
                 }
-            });    
-        </script>
+            });
+
+            // Set placeholders with proper symbols
+            objectiveMathField.el().setAttribute('data-placeholder', 'e.g., 2x₁ + 3x₂');
+            constraintsMathField.el().setAttribute('data-placeholder', 'e.g., x₁ + 2x₂ \\leq 8; 3x₁ + 2x₂ \\leq 12');
+
+            function updatePlaceholderVisibility(mathField) {
+                const isEmpty = mathField.latex().trim() === '';
+                const el = mathField.el();
+                el.classList.toggle('mq-empty', isEmpty);
+                el.classList.toggle('has-content', !isEmpty);
+            }
+
+            // Initialize placeholder visibility
+            updatePlaceholderVisibility(objectiveMathField);
+            updatePlaceholderVisibility(constraintsMathField);
+        });
+    </script>
 </body>
 </html>
