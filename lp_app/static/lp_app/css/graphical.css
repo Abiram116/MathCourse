@@ -62,7 +62,7 @@ select option {
     padding: 0 !important;
 }
 
-/* Improved placeholder styling */
+/* Updated placeholder styling to always show unless there's content */
 .mq-editable-field.mq-empty:before {
     content: attr(data-placeholder);
     color: rgba(255, 255, 255, 0.4) !important;
@@ -73,21 +73,29 @@ select option {
     pointer-events: none !important;
     font-size: 16px !important;
     z-index: 1 !important;
+    display: block !important;
+    opacity: 1 !important;
+    transition: opacity 0.2s ease-in-out !important;
 }
 
-/* Hide placeholder when field is focused or has content */
-.mq-editable-field.mq-focused:before,
+/* Only hide placeholder when there's content */
 .mq-editable-field:not(.mq-empty):before {
-    display: none;
+    opacity: 0 !important;
 }
 
+/* Remove the focus-based hiding */
+.mq-editable-field.mq-focused.mq-empty:before {
+    display: block !important;
+    opacity: 1 !important;
+}
+
+/* Rest of your existing styles remain the same */
 .mq-editable-field .mq-root-block {
     display: flex !important;
     align-items: center !important;
     min-height: 48px !important;
 }
 
-/* Fix cursor and text alignment */
 .mq-cursor {
     border-left: 1px solid #fff !important;
     margin-left: -1px !important;
@@ -103,7 +111,6 @@ select option {
     min-height: 48px !important;
 }
 
-/* Fix text color for all MathQuill elements */
 .mq-math-mode,
 .mq-math-mode .mq-non-leaf,
 .mq-math-mode .mq-digit,
@@ -115,7 +122,6 @@ select option {
     align-items: center !important;
 }
 
-/* Fix selection color */
 .mq-math-mode .mq-selection,
 .mq-editable-field .mq-selection {
     background: rgba(74, 222, 128, 0.3) !important;
