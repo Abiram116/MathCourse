@@ -343,8 +343,8 @@
             });
 
             // Set placeholders with proper symbols
-            objectiveMathField.el().setAttribute('data-placeholder', 'e.g., 2x₁ + 3x₂');
-            constraintsMathField.el().setAttribute('data-placeholder', 'e.g., x₁ + 2x₂ \\leq 8; 3x₁ + 2x₂ \\leq 12');
+            objectiveMathField.el().setAttribute('data-placeholder', 'e.g., 2a + 3b');
+            constraintsMathField.el().setAttribute('data-placeholder', 'e.g., 2a + 3b ≤ 10; 3a + 4b ≥ 20');
 
             function updatePlaceholderVisibility(mathField) {
                 const isEmpty = mathField.latex().trim() === '';
