@@ -1,21 +1,22 @@
-select option {
-    background-color: #374151;
-    color: white;
-}
-.title-wrapper {
-    padding: 2rem 0;
-    margin-bottom: 2rem;
+:root {
+    --color-primary: #10b981;
+    --color-secondary: #3b82f6;
+    --color-background: #374151;
+    --color-border: #4B5563;
+    --color-text: white;
+    --color-error: #ef4444;
+    --transition-duration: 0.3s;
+    --border-radius: 0.75rem;
 }
 
-.title-container {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    padding: 2rem 0;
+/* General Styles */
+select option {
+    background-color: var(--color-background);
+    color: var(--color-text);
 }
 
 .title-gradient {
-    background: linear-gradient(to right, #10b981, #3b82f6);
+    background: linear-gradient(to right, var(--color-primary), var(--color-secondary));
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -25,20 +26,20 @@ select option {
     line-height: 1.4;
 }
 
-/* Ensure container has enough space */
 #mainContainer {
     padding-top: 4rem;
     min-height: 100vh;
+    opacity: 0;
 }
 
 /* MathQuill Styling */
 .mq-editable-field {
     width: 100% !important;
-    background: #374151 !important;
-    border: 1px solid #4B5563 !important;
-    border-radius: 0.75rem !important;
-    color: white !important;
-    transition: all 0.2s ease-in-out !important;
+    background: var(--color-background) !important;
+    border: 1px solid var(--color-border) !important;
+    border-radius: var(--border-radius) !important;
+    color: var(--color-text) !important;
+    transition: all var(--transition-duration) ease-in-out !important;
     margin-bottom: 0 !important;
     box-shadow: none !important;
     min-height: 48px !important;
@@ -49,7 +50,7 @@ select option {
 }
 
 .mq-editable-field.mq-focused {
-    border-color: #4ade80 !important;
+    border-color: var(--color-primary) !important;
     box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.2) !important;
 }
 
@@ -62,7 +63,6 @@ select option {
     padding: 0 !important;
 }
 
-/* Updated placeholder styling to always show unless there's content */
 .mq-editable-field.mq-empty:before {
     content: attr(data-placeholder);
     color: rgba(255, 255, 255, 0.4) !important;
@@ -75,31 +75,22 @@ select option {
     z-index: 1 !important;
     display: block !important;
     opacity: 1 !important;
-    transition: opacity 0.2s ease-in-out !important;
+    transition: opacity var(--transition-duration) ease-in-out !important;
 }
 
-/* Only hide placeholder when there's content */
 .mq-editable-field:not(.mq-empty):before {
     opacity: 0 !important;
 }
 
-/* Remove the focus-based hiding */
 .mq-editable-field.mq-focused.mq-empty:before {
     display: block !important;
     opacity: 1 !important;
 }
 
-/* Rest of your existing styles remain the same */
-.mq-editable-field .mq-root-block {
-    display: flex !important;
-    align-items: center !important;
-    min-height: 48px !important;
-}
-
 .mq-cursor {
-    border-left: 1px solid #fff !important;
+    border-left: 1px solid var(--color-text) !important;
     margin-left: -1px !important;
-    border-color: #fff !important;
+    border-color: var(--color-text) !important;
     visibility: visible !important;
     display: inline-flex !important;
     align-items: center !important;
@@ -117,7 +108,7 @@ select option {
 .mq-math-mode var,
 .mq-math-mode .mq-operator-name,
 .mq-math-mode .mq-paren {
-    color: white !important;
+    color: var(--color-text) !important;
     display: inline-flex !important;
     align-items: center !important;
 }
@@ -125,21 +116,21 @@ select option {
 .mq-math-mode .mq-selection,
 .mq-editable-field .mq-selection {
     background: rgba(74, 222, 128, 0.3) !important;
-    color: white !important;
+    color: var(--color-text) !important;
 }
 
-/* Additional styles for your other elements */
+/* Button Styles */
 .clear-button {
     background: rgba(59, 130, 246, 0.2);
-    color: #3b82f6;
-    border: 1px solid #3b82f6;
-    transition: all 0.3s ease;
+    color: var(--color-secondary);
+    border: 1px solid var(--color-secondary);
+    transition: all var(--transition-duration) ease;
 }
 
 .clear-button:hover {
     background: rgba(59, 130, 246, 0.3);
-    color: #4ade80;
-    border-color: #4ade80;
+    color: var(--color-primary);
+    border-color: var(--color-primary);
 }
 
 .back-button {
@@ -152,28 +143,24 @@ select option {
     border-radius: 50%;
     border: 1px solid rgba(75, 85, 99, 0.5);
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all var(--transition-duration) ease;
     z-index: 50;
-}
-.back-button:hover {
-    transform: scale(1.1);
-    background: rgba(17, 24, 39, 0.9);
-}
-.back-arrow {
-    width: 24px;
-    height: 24px;
-    fill: #4ade80;
-}
-
-#mainContainer {
-    opacity: 0;
-}
-
-.back-button {
     opacity: 0;
     transform: translateX(-50px);
 }
 
+.back-button:hover {
+    transform: scale(1.1);
+    background: rgba(17, 24, 39, 0.9);
+}
+
+.back-arrow {
+    width: 24px;
+    height: 24px;
+    fill: var(--color-primary);
+}
+
+/* Form Group Animations */
 .form-group {
     opacity: 0;
     transform: translateY(20px);
