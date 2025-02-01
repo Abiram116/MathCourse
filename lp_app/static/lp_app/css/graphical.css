@@ -40,8 +40,6 @@ select option {
     border-radius: var(--border-radius) !important;
     color: var(--color-text) !important;
     transition: all var(--transition-duration) ease-in-out !important;
-    margin-bottom: 0 !important;
-    box-shadow: none !important;
     min-height: 48px !important;
     display: flex !important;
     align-items: center !important;
@@ -52,15 +50,6 @@ select option {
 .mq-editable-field.mq-focused {
     border-color: var(--color-primary) !important;
     box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.2) !important;
-}
-
-.mq-root-block {
-    position: relative !important;
-    z-index: 2 !important;
-    min-height: 48px !important;
-    display: flex !important;
-    align-items: center !important;
-    padding: 0 !important;
 }
 
 .mq-editable-field.mq-empty:before {
@@ -82,11 +71,6 @@ select option {
     opacity: 0 !important;
 }
 
-.mq-editable-field.mq-focused.mq-empty:before {
-    display: block !important;
-    opacity: 1 !important;
-}
-
 .mq-cursor {
     border-left: 1px solid var(--color-text) !important;
     margin-left: -1px !important;
@@ -94,29 +78,6 @@ select option {
     visibility: visible !important;
     display: inline-flex !important;
     align-items: center !important;
-}
-
-.mq-math-mode .mq-root-block {
-    align-items: center !important;
-    justify-content: flex-start !important;
-    min-height: 48px !important;
-}
-
-.mq-math-mode,
-.mq-math-mode .mq-non-leaf,
-.mq-math-mode .mq-digit,
-.mq-math-mode var,
-.mq-math-mode .mq-operator-name,
-.mq-math-mode .mq-paren {
-    color: var(--color-text) !important;
-    display: inline-flex !important;
-    align-items: center !important;
-}
-
-.mq-math-mode .mq-selection,
-.mq-editable-field .mq-selection {
-    background: rgba(74, 222, 128, 0.3) !important;
-    color: var(--color-text) !important;
 }
 
 /* Button Styles */
