@@ -221,8 +221,18 @@ def solve_lp(request):
                 x_coeff = parse_expression(left)[0]
                 y_coeff = parse_expression(left)[1]
                 
-                # Format with fixed decimal places and proper spacing
-                formatted = f'{x_coeff:.1f}x {"-" if y_coeff < 0 else "+"} {abs(y_coeff):.1f}y {inequality} {float(right):.1f}'
+                if x_coeff == 1:
+                    x_coeff == ''
+                if y_coeff == 1:
+                    y_coeff == ''
+                    
+               # Format with fixed decimal places and proper spacing
+                if x_coeff==0:
+                    formatted = f'{(y_coeff):.1f}y {inequality} {float(right):.1f}'
+                elif y_coeff==0:
+                    formatted = f'{x_coeff:.1f}x {inequality} {float(right):.1f}'
+                else:       
+                    formatted = f'{x_coeff:.1f}x {"-" if y_coeff < 0 else "+"} {abs(y_coeff):.1f}y {inequality} {float(right):.1f}'
                 return formatted
 
             original_constraints = data['constraints'].split(';')
