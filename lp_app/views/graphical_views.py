@@ -202,20 +202,38 @@ def solve_lp(request):
             max_x = max(20, np.max(b) / 2)
             x = np.linspace(0, max_x, 400)
 
+            def legend_constraint_format(constraint):
+                # Remove whitespace
+                constraint = constraint.replace(' ', '')
+                
+                # Split into left and right sides
+                sides = re.split(r'<=|>=|=', constraint)
+                left = sides[0]
+                right = sides[1]
+                # Determine inequality sign
+                if '<=' in constraint:
+                    inequality = '≤'
+                elif '>=' in constraint:
+                    inequality = '≥'
+                else:
+                    inequality = '='                
+                # Parse x and y coefficients
+                x_coeff = parse_expression(left)[0]
+                y_coeff = parse_expression(left)[1]
+                
+                # Format with fixed decimal places and proper spacing
+                formatted = f'{x_coeff:.1f}x {"-" if y_coeff < 0 else "+"} {abs(y_coeff):.1f}y {inequality} {float(right):.1f}'
+                return formatted
+
+            original_constraints = data['constraints'].split(';')
+
             for i, (a_i, b_i) in enumerate(zip(A, b)):
                 if a_i[1] != 0:
                     y = (b_i - a_i[0] * x) / a_i[1]
-                    if a_i[0] >= 0 and a_i[1] >= 0:
-                        original_constraint = f'{a_i[0]:.1f}x + {a_i[1]:.1f}y ≤ {b_i:.1f}'
-                    elif a_i[0] < 0 and a_i[1] < 0:
-                        original_constraint = f'{-a_i[0]:.1f}x + {-a_i[1]:.1f}y ≥ {-b_i:.1f}'
-                    elif a_i[0] < 0 and a_i[1] >= 0:
-                        original_constraint = f'{-a_i[0]:.1f}x + {a_i[1]:.1f}y ≥ {-b_i:.1f}'
-                    elif a_i[0] >= 0 and a_i[1] < 0:
-                        original_constraint = f'{a_i[0]:.1f}x - {-a_i[1]:.1f}y ≥ {-b_i:.1f}'
+                    original_constraint = legend_constraint_format(original_constraints[i].strip())
                     plt.plot(x, y, color=colors[i % len(colors)], label=original_constraint, linewidth=2.5)
                 else:
-                    original_constraint = f'x ≤ {b_i / a_i[0]:.1f}' if a_i[0] > 0 else f'x ≥ {b_i / a_i[0]:.1f}'
+                    original_constraint = legend_constraint_format(original_constraints[i].strip())
                     plt.axvline(x=b_i / a_i[0], color=colors[i % len(colors)], label=original_constraint, linewidth=2.5)
 
             # Plot feasible region
