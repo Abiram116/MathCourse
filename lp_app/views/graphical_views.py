@@ -203,38 +203,19 @@ def solve_lp(request):
             x = np.linspace(0, max_x, 400)
 
             def legend_constraint_format(constraint):
-                # Remove whitespace
-                constraint = constraint.replace(' ', '')
+                sides = re.split(r'<=|>=|=', constraint.strip())
+                inequality = '≤' if '<=' in constraint else '≥' if '>=' in constraint else '='
+                x_coeff, y_coeff = parse_expression(sides[0])
                 
-                # Split into left and right sides
-                sides = re.split(r'<=|>=|=', constraint)
-                left = sides[0]
-                right = sides[1]
-                # Determine inequality sign
-                if '<=' in constraint:
-                    inequality = '≤'
-                elif '>=' in constraint:
-                    inequality = '≥'
-                else:
-                    inequality = '='                
-                # Parse x and y coefficients
-                x_coeff = parse_expression(left)[0]
-                y_coeff = parse_expression(left)[1]
-                
-                if x_coeff == 1:
-                    x_coeff == ''
-                if y_coeff == 1:
-                    y_coeff == ''
-                    
-               # Format with fixed decimal places and proper spacing
-                if x_coeff==0:
-                    formatted = f'{(y_coeff):.1f}y {inequality} {float(right):.1f}'
-                elif y_coeff==0:
-                    formatted = f'{x_coeff:.1f}x {inequality} {float(right):.1f}'
-                else:       
-                    formatted = f'{x_coeff:.1f}x {"-" if y_coeff < 0 else "+"} {abs(y_coeff):.1f}y {inequality} {float(right):.1f}'
-                return formatted
+                parts = []
+                if x_coeff:
+                    parts.append(f"{'' if abs(x_coeff) == 1 else f'{x_coeff:.1f}'}{'-' if x_coeff < 0 else ''}x")
+                if y_coeff:
+                    parts.append(f"{'- ' if y_coeff < 0 else '+ '}{'' if abs(y_coeff) == 1 else f'{abs(y_coeff):.1f}'}y")
 
+                left = ' '.join(parts).lstrip('+ ')
+                return f"{left} {inequality} {float(sides[1]):.1f}"
+            
             original_constraints = data['constraints'].split(';')
 
             for i, (a_i, b_i) in enumerate(zip(A, b)):
