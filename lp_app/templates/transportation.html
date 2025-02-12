@@ -1,0 +1,274 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transportation Problem Solver</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        .title-gradient {
+            background: linear-gradient(45deg, #22c55e, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .back-button {
+            position: fixed;
+            top: 2rem;
+            left: 2rem;
+            width: 3rem;
+            height: 3rem;
+            background: rgba(31, 41, 55, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(75, 85, 99, 0.5);
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .back-button:hover {
+            background: rgba(31, 41, 55, 0.8);
+            transform: scale(1.05);
+        }
+        
+        .back-arrow {
+            width: 1.5rem;
+            height: 1.5rem;
+            fill: currentColor;
+        }
+        
+        .clear-button {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+        }
+        
+        .clear-button:hover {
+            background: rgba(59, 130, 246, 0.2);
+        }
+
+        #mainContainer {
+            opacity: 0;
+        }
+
+        .form-group {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .cost-input::-webkit-outer-spin-button,
+        .cost-input::-webkit-inner-spin-button,
+        .supply-input::-webkit-outer-spin-button,
+        .supply-input::-webkit-inner-spin-button,
+        .demand-input::-webkit-outer-spin-button,
+        .demand-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .cost-input,
+        .supply-input,
+        .demand-input {
+            -moz-appearance: textfield;
+        }
+
+        #solution-matrix table {
+            background: rgba(31, 41, 55, 0.3);
+            border-radius: 0.5rem;
+        }
+
+        #solution-matrix td {
+            transition: background-color 0.3s ease;
+        }
+
+        #solution-matrix td:hover {
+            background: rgba(59, 130, 246, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-gray-800 text-gray-100 min-h-screen overflow-x-hidden flex items-center">
+    <a href="/" class="back-button" title="Back to Home">
+        <svg class="back-arrow" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+        </svg>
+    </a>
+
+    <div class="container mx-auto px-4 py-12 max-w-7xl" id="mainContainer">
+        <h1 class="text-5xl font-bold text-center mb-16 title-gradient">
+            Transportation Problem Solver
+        </h1>
+        
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
+            <div class="xl:col-span-6 xl:col-start-4">
+                <div class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-700/50">
+                    <form id="transportation-form" class="space-y-6">
+                        {% csrf_token %}
+                        
+                        <div class="form-group">
+                            <label class="block text-sm font-medium mb-2 text-green-400">Matrix Dimensions</label>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs text-gray-400 mb-1">Sources (m)</label>
+                                    <input type="number" id="sources" min="1" value="2" 
+                                        class="w-full bg-gray-700 text-white border border-gray-600 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-400 focus:border-transparent">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-400 mb-1">Destinations (n)</label>
+                                    <input type="number" id="destinations" min="1" value="2"
+                                        class="w-full bg-gray-700 text-white border border-gray-600 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-400 focus:border-transparent">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="block text-sm font-medium mb-2 text-green-400">Cost Matrix</label>
+                            <div id="cost-matrix" class="overflow-x-auto">
+                                <!-- Matrix will be generated here -->
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="block text-sm font-medium mb-2 text-green-400">Supply</label>
+                            <div id="supply-inputs" class="flex flex-wrap gap-2">
+                                <!-- Supply inputs will be generated here -->
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="block text-sm font-medium mb-2 text-green-400">Demand</label>
+                            <div id="demand-inputs" class="flex flex-wrap gap-2">
+                                <!-- Demand inputs will be generated here -->
+                            </div>
+                        </div>
+
+                        <div class="flex space-x-4">
+                            <button type="submit" id="solveBtn"
+                                class="flex-grow bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-medium py-3 px-6 rounded-xl transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-400">
+                                Solve
+                            </button>
+                            <button type="button" id="clearBtn"
+                                class="clear-button px-4 py-3 rounded-xl transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                Clear
+                            </button>
+                        </div>
+                    </form>
+                    <div id="error-message" class="text-red-400 mt-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/50 hidden"></div>
+                </div>
+            </div>
+
+            <div class="xl:col-span-6 xl:col-start-4">
+                <div id="solution-container" class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-700/50 hidden">
+                    <h2 class="text-2xl font-semibold mb-6 text-green-400">Solution</h2>
+                    <div class="space-y-4">
+                        <div id="solution-matrix" class="overflow-x-auto"></div>
+                        <div id="total-cost" class="text-lg mt-4"></div>
+                        <div id="status" class="text-lg mt-4 text-gray-300"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Initialize GSAP animations
+        document.addEventListener('DOMContentLoaded', function() {
+            gsap.to('#mainContainer', {
+                opacity: 1,
+                duration: 0.8,
+                ease: 'power2.out'
+            });
+
+            gsap.to('.form-group', {
+                opacity: 1,
+                y: 0,
+                duration: 0.8,
+                stagger: 0.1,
+                ease: 'back.out'
+            });
+
+            gsap.to('#solveBtn, #clearBtn', {
+                opacity: 1,
+                y: 0,
+                duration: 0.8,
+                stagger: 0.1,
+                ease: 'back.out'
+            }, "-=0.2");
+        });
+
+        // Helper function to validate inputs
+        function validateInputs() {
+            const sources = parseInt(document.getElementById('sources').value);
+            const destinations = parseInt(document.getElementById('destinations').value);
+            
+            // Validate dimensions
+            if (sources < 1 || destinations < 1) {
+                throw new Error('Number of sources and destinations must be positive');
+            }
+
+            // Validate cost matrix
+            const costInputs = document.querySelectorAll('.cost-input');
+            costInputs.forEach(input => {
+                if (input.value.trim() === '') {
+                    throw new Error('All cost matrix values must be filled');
+                }
+                if (isNaN(parseFloat(input.value))) {
+                    throw new Error('All cost matrix values must be numbers');
+                }
+            });
+
+            // Validate supply and demand
+            const supplyInputs = document.querySelectorAll('.supply-input');
+            const demandInputs = document.querySelectorAll('.demand-input');
+            
+            let totalSupply = 0;
+            let totalDemand = 0;
+
+            supplyInputs.forEach(input => {
+                if (input.value.trim() === '') {
+                    throw new Error('All supply values must be filled');
+                }
+                totalSupply += parseFloat(input.value);
+            });
+
+            demandInputs.forEach(input => {
+                if (input.value.trim() === '') {
+                    throw new Error('All demand values must be filled');
+                }
+                totalDemand += parseFloat(input.value);
+            });
+
+            if (Math.abs(totalSupply - totalDemand) > 0.0001) {
+                throw new Error('Total supply must equal total demand');
+            }
+        }
+
+        // Add input validation before form submission
+        document.getElementById('transportation-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            try {
+                validateInputs();
+                // Add your form submission logic here
+                const errorMessage = document.getElementById('error-message');
+                errorMessage.classList.add('hidden');
+                document.getElementById('solution-container').classList.remove('hidden');
+            } catch (error) {
+                const errorMessage = document.getElementById('error-message');
+                errorMessage.textContent = error.message;
+                errorMessage.classList.remove('hidden');
+                document.getElementById('solution-container').classList.add('hidden');
+            }
+        });
+
+        // Clear button functionality
+        document.getElementById('clearBtn').addEventListener('click', function() {
+            document.getElementById('transportation-form').reset();
+            document.getElementById('error-message').classList.add('hidden');
+            document.getElementById('solution-container').classList.add('hidden');
+        });
+    </script>
+</body>
+</html>
