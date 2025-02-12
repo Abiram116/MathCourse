@@ -13,10 +13,17 @@ from lp_app.views.simplex_views import (
     solve_simplex_lp
 )
 
+from lp_app.views.transportation_views import (
+    transportation_solver_view,
+    solve_transportation
+)
+
 __all__ = [
     'home',
     'graphical_solver',
     'solve_lp',
     'simplex_solver_view',
-    'solve_simplex_lp'
+    'solve_simplex_lp',
+    'transportation_solver_view',
+    'solve_transportation'
 ]
