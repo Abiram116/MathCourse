@@ -40,6 +40,62 @@
             height: 1.5rem;
             fill: currentColor;
         }
+
+        /* Add new styles for the matrix layout */
+        .matrix-container {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .matrix-row {
+            display: grid;
+            grid-template-columns: 60px 1fr;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .matrix-cell {
+            min-width: 120px;
+        }
+
+        .input-label {
+            text-align: right;
+            padding-right: 0.5rem;
+            color: #9CA3AF;
+        }
+
+        .cost-input, .supply-input, .demand-input {
+            width: 100%;
+            min-width: 120px;
+            height: 48px;
+        }/* Increase the size of matrix cells */
+        #cost-matrix table td input {
+            width: 100%;
+            min-width: 120px;
+            height: 48px;
+        }
+
+        /* Style for the header labels */
+        .destination-label {
+            text-align: center;
+            color: #9CA3AF;
+            padding: 0.5rem;
+        }
+
+        /* Add styles for supply/demand containers */
+        .supply-demand-container {
+            display: grid;
+            grid-template-columns: 60px 1fr;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        /* Adjust the cost matrix container */
+        #cost-matrix table {
+            border-spacing: 0.5rem;
+            border-collapse: separate;
+        }
         
         .clear-button {
             background: rgba(59, 130, 246, 0.1);
@@ -125,7 +181,7 @@
                         </div>
 
                         <div class="form-group">
-                            <label class="block text-sm font-medium mb-2 text-green-400">Cost Matrix</label>
+                            <label class="block text-sm font-medium mb-4 text-green-400">Cost Matrix</label>
                             <div id="cost-matrix" class="overflow-x-auto">
                                 <!-- Matrix will be generated here -->
                             </div>
@@ -153,6 +209,10 @@
                             <button type="button" id="clearBtn"
                                 class="clear-button px-4 py-3 rounded-xl transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-400">
                                 Clear
+                            </button>
+                            <button type="button" id="resetBtn"
+                                class="clear-button px-4 py-3 rounded-xl transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                Reset
                             </button>
                         </div>
                     </form>
@@ -199,63 +259,405 @@
             }, "-=0.2");
         });
 
-        // Helper function to validate inputs
+
         function validateInputs() {
             const sources = parseInt(document.getElementById('sources').value);
             const destinations = parseInt(document.getElementById('destinations').value);
             
             // Validate dimensions
-            if (sources < 1 || destinations < 1) {
-                throw new Error('Number of sources and destinations must be positive');
+            if (isNaN(sources) || sources < 1) {
+                throw new Error('Number of sources must be a positive number');
+            }
+            if (isNaN(destinations) || destinations < 1) {
+                throw new Error('Number of destinations must be a positive number');
             }
 
-            // Validate cost matrix
+            // Validate cost matrix values
             const costInputs = document.querySelectorAll('.cost-input');
-            costInputs.forEach(input => {
-                if (input.value.trim() === '') {
-                    throw new Error('All cost matrix values must be filled');
+            costInputs.forEach((input, index) => {
+                const value = input.value.trim();
+                if (value === '') {
+                    throw new Error(`Cost matrix cell at position ${Math.floor(index/destinations) + 1},${index%destinations + 1} is empty`);
                 }
-                if (isNaN(parseFloat(input.value))) {
-                    throw new Error('All cost matrix values must be numbers');
+                if (isNaN(parseFloat(value)) || parseFloat(value) < 0) {
+                    throw new Error(`Cost matrix cell at position ${Math.floor(index/destinations) + 1},${index%destinations + 1} must be a non-negative number`);
                 }
             });
 
-            // Validate supply and demand
+            // Validate supply values
             const supplyInputs = document.querySelectorAll('.supply-input');
-            const demandInputs = document.querySelectorAll('.demand-input');
-            
             let totalSupply = 0;
+            supplyInputs.forEach((input, index) => {
+                const value = input.value.trim();
+                if (value === '') {
+                    throw new Error(`Supply value for source ${index + 1} is empty`);
+                }
+                const supplyValue = parseFloat(value);
+                if (isNaN(supplyValue) || supplyValue < 0) {
+                    throw new Error(`Supply value for source ${index + 1} must be a non-negative number`);
+                }
+                totalSupply += supplyValue;
+            });
+
+            // Validate demand values
+            const demandInputs = document.querySelectorAll('.demand-input');
             let totalDemand = 0;
-
-            supplyInputs.forEach(input => {
-                if (input.value.trim() === '') {
-                    throw new Error('All supply values must be filled');
+            demandInputs.forEach((input, index) => {
+                const value = input.value.trim();
+                if (value === '') {
+                    throw new Error(`Demand value for destination ${index + 1} is empty`);
                 }
-                totalSupply += parseFloat(input.value);
+                const demandValue = parseFloat(value);
+                if (isNaN(demandValue) || demandValue < 0) {
+                    throw new Error(`Demand value for destination ${index + 1} must be a non-negative number`);
+                }
+                totalDemand += demandValue;
             });
 
-            demandInputs.forEach(input => {
-                if (input.value.trim() === '') {
-                    throw new Error('All demand values must be filled');
-                }
-                totalDemand += parseFloat(input.value);
-            });
-
-            if (Math.abs(totalSupply - totalDemand) > 0.0001) {
-                throw new Error('Total supply must equal total demand');
+            // Validate total supply equals total demand
+            if (Math.abs(totalSupply - totalDemand) > 0.0001) { // Using small epsilon for floating point comparison
+                throw new Error(`Total supply (${totalSupply}) must equal total demand (${totalDemand})`);
             }
         }
 
-        // Add input validation before form submission
-        document.getElementById('transportation-form').addEventListener('submit', function(e) {
+        // Function to create input element with common styles
+        function createInput(type, className, placeholder) {
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.className = `${className} w-full bg-gray-700 text-white border border-gray-600 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-400 focus:border-transparent`;
+            input.placeholder = placeholder;
+            input.step = 'any';
+            return input;
+        }
+
+        // Store current matrix before regenerating
+        function storeCurrentValues() {
+            return {
+                costs: Array.from(document.querySelectorAll('.cost-input')).map(input => ({
+                    row: parseInt(input.dataset.row),
+                    col: parseInt(input.dataset.col),
+                    value: input.value
+                })),
+                supply: Array.from(document.querySelectorAll('.supply-input')).map(input => input.value),
+                demand: Array.from(document.querySelectorAll('.demand-input')).map(input => input.value)
+            }
+        }
+
+
+        // Function to generate the cost matrix
+        function generateCostMatrix() {
+            const sources = parseInt(document.getElementById('sources').value);
+            const destinations = parseInt(document.getElementById('destinations').value);
+            const costMatrix = document.getElementById('cost-matrix');
+            
+            costMatrix.innerHTML = '';
+            
+            const table = document.createElement('table');
+            table.className = 'w-full';
+            
+            // Create header row with destination labels
+            const headerRow = document.createElement('tr');
+            headerRow.appendChild(document.createElement('th')); // Empty corner cell
+            for (let j = 0; j < destinations; j++) {
+                const th = document.createElement('th');
+                th.className = 'destination-label';
+                // th.textContent = `D${j + 1}`;
+                headerRow.appendChild(th);
+            }
+            table.appendChild(headerRow);
+            
+            // Create rows for sources
+            for (let i = 0; i < sources; i++) {
+                const row = document.createElement('tr');
+                
+                // Add source label
+                const sourceLabel = document.createElement('td');
+                sourceLabel.className = 'input-label';
+                // sourceLabel.textContent = `S${i + 1}`;
+                row.appendChild(sourceLabel);
+                
+                // Add cost inputs
+                for (let j = 0; j < destinations; j++) {
+                    const td = document.createElement('td');
+                    td.className = 'matrix-cell';
+                    const input = createInput('number', 'cost-input', '0');
+                    input.dataset.row = i;
+                    input.dataset.col = j;
+                    
+                    td.appendChild(input);
+                    row.appendChild(td);
+                }
+                
+                table.appendChild(row);
+            }
+            
+            costMatrix.appendChild(table);
+        }
+
+        // Function to generate supply inputs
+        function generateSupplyInputs() {
+            const sources = parseInt(document.getElementById('sources').value);
+            const supplyInputs = document.getElementById('supply-inputs');
+            
+            // Add label
+            const label = document.createElement('div');
+            label.className = 'input-label';
+            
+            // Create container for inputs
+            const inputsContainer = document.createElement('div');
+            inputsContainer.className = 'grid grid-cols-4 gap-4';
+            
+            for (let i = 0; i < sources; i++) {
+                const div = document.createElement('div');
+                div.className = 'relative';
+                
+                const input = createInput('number', 'supply-input', '0');
+                
+                const label = document.createElement('label');
+                label.className = 'absolute -top-5 left-2 text-xs text-gray-400';
+                // label.textContent = `S${i + 1}`;
+                
+                div.appendChild(label);
+                div.appendChild(input);
+                inputsContainer.appendChild(div);
+            }
+            
+            supplyInputs.innerHTML = '';
+            supplyInputs.appendChild(label);
+            supplyInputs.appendChild(inputsContainer);
+        }
+
+        // Function to generate demand inputs
+        function generateDemandInputs() {
+            const destinations = parseInt(document.getElementById('destinations').value);
+            const demandInputs = document.getElementById('demand-inputs');
+            
+            // Add label
+            const label = document.createElement('div');
+            label.className = 'input-label';
+            
+            // Create container for inputs
+            const inputsContainer = document.createElement('div');
+            inputsContainer.className = 'grid grid-cols-4 gap-4';
+            
+            for (let j = 0; j < destinations; j++) {
+                const div = document.createElement('div');
+                div.className = 'relative';
+                
+                const input = createInput('number', 'demand-input', '0');
+                
+                const label = document.createElement('label');
+                label.className = 'absolute -top-5 left-2 text-xs text-gray-400';
+                // label.textContent = `D${j + 1}`;
+                
+                div.appendChild(label);
+                div.appendChild(input);
+                inputsContainer.appendChild(div);
+            }
+            
+            demandInputs.innerHTML = '';
+            demandInputs.appendChild(label);
+            demandInputs.appendChild(inputsContainer);
+        }
+
+        // Function to gather all input data
+        function gatherInputData() {
+            const sources = parseInt(document.getElementById('sources').value);
+            const destinations = parseInt(document.getElementById('destinations').value);
+            
+            // Gather cost matrix
+            const costMatrix = Array(sources).fill().map(() => Array(destinations));
+            document.querySelectorAll('.cost-input').forEach(input => {
+                const i = parseInt(input.dataset.row);
+                const j = parseInt(input.dataset.col);
+                costMatrix[i][j] = parseFloat(input.value) || 0;
+            });
+            
+            // Gather supply values
+            const supply = Array.from(document.querySelectorAll('.supply-input'))
+                .map(input => parseFloat(input.value) || 0);
+            
+            // Gather demand values
+            const demand = Array.from(document.querySelectorAll('.demand-input'))
+                .map(input => parseFloat(input.value) || 0);
+            
+            return {
+                costMatrix,
+                supply,
+                demand
+            };
+        }
+
+        // Function to display the solution
+        function displaySolution(solution) {
+            const solutionMatrix = document.getElementById('solution-matrix');
+            const sources = solution.solution.length;
+            const destinations = solution.solution[0].length;
+            
+            // Create solution table
+            let html = '<table class="w-full border-collapse"><tr><th></th>';
+            
+            // Add destination headers
+            for (let j = 0; j < destinations; j++) {
+                html += `<th class="p-2 text-center text-gray-400">D${j + 1}</th>`;
+            }
+            html += '</tr>';
+            
+            // Add rows with source labels and values
+            for (let i = 0; i < sources; i++) {
+                html += `<tr><td class="p-2 text-gray-400">S${i + 1}</td>`;
+                for (let j = 0; j < destinations; j++) {
+                    const value = solution.solution[i][j];
+                    html += `<td class="p-2 text-center">${value.toFixed(2)}</td>`;
+                }
+                html += '</tr>';
+            }
+            html += '</table>';
+            
+            solutionMatrix.innerHTML = html;
+            
+            // Display total cost
+            document.getElementById('total-cost').textContent = 
+                `Total Cost: ${solution.total_cost.toFixed(2)}`;
+            
+            // Display status
+            document.getElementById('status').textContent = 
+                `Status: ${solution.status}`;
+        }
+
+        // Function to clear all input values but keep dimensions
+        function clearInputs() {
+            // Clear cost matrix inputs
+            document.querySelectorAll('.cost-input').forEach(input => {
+                input.value = '';
+            });
+            
+            // Clear supply inputs
+            document.querySelectorAll('.supply-input').forEach(input => {
+                input.value = '';
+            });
+            
+            // Clear demand inputs
+            document.querySelectorAll('.demand-input').forEach(input => {
+                input.value = '';
+            });
+            
+            // Hide solution and error containers
+            document.getElementById('solution-container').classList.add('hidden');
+            document.getElementById('error-message').classList.add('hidden');
+        }
+
+        // Function to reset only dimensions to 2x2
+        function resetToDefault() {
+            // Store current values in temp arrays
+            const oldValues = {
+                costs: [],
+                supply: [],
+                demand: []
+            };
+            
+            // Save current values
+            document.querySelectorAll('.cost-input').forEach(input => {
+                oldValues.costs.push({
+                    row: parseInt(input.dataset.row),
+                    col: parseInt(input.dataset.col),
+                    value: input.value
+                });
+            });
+            
+            document.querySelectorAll('.supply-input').forEach(input => {
+                oldValues.supply.push(input.value);
+            });
+            
+            document.querySelectorAll('.demand-input').forEach(input => {
+                oldValues.demand.push(input.value);
+            });
+
+            // Reset dimensions to 2x2
+            document.getElementById('sources').value = 2;
+            document.getElementById('destinations').value = 2;
+            
+            // Regenerate matrices with new dimensions
+            generateCostMatrix();
+            generateSupplyInputs();
+            generateDemandInputs();
+            
+            // Restore values that fit within new dimensions
+            oldValues.costs.forEach(item => {
+                if (item.row < 2 && item.col < 2) {
+                    const input = document.querySelector(`.cost-input[data-row="${item.row}"][data-col="${item.col}"]`);
+                    if (input) input.value = item.value;
+                }
+            });
+            
+            oldValues.supply.slice(0, 2).forEach((value, index) => {
+                const input = document.querySelectorAll('.supply-input')[index];
+                if (input) input.value = value;
+            });
+            
+            oldValues.demand.slice(0, 2).forEach((value, index) => {
+                const input = document.querySelectorAll('.demand-input')[index];
+                if (input) input.value = value;
+            });
+        }
+
+        // Initialize event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+        // Generate initial matrices and inputs
+        generateCostMatrix();
+        generateSupplyInputs();
+        generateDemandInputs();
+        
+        // Add event listeners for dimension changes
+        document.getElementById('sources').addEventListener('change', () => {
+            generateCostMatrix();
+            generateSupplyInputs();
+        });
+        
+        document.getElementById('destinations').addEventListener('change', () => {
+            generateCostMatrix();
+            generateDemandInputs();
+        });
+        
+        // Handle form submission
+        document.getElementById('transportation-form').addEventListener('submit', async function(e) {
             e.preventDefault();
+            
             try {
+                // Validate inputs before proceeding
                 validateInputs();
-                // Add your form submission logic here
-                const errorMessage = document.getElementById('error-message');
-                errorMessage.classList.add('hidden');
+                
+                // Gather input data to send to the backend
+                const data = gatherInputData();
+                
+                // Make a request to the server to solve the transportation problem
+                const response = await fetch('/solve-transportation/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                // Check if the response is successful
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                
+                const solution = await response.json();
+                
+                if (solution.error) {
+                    throw new Error(solution.error);
+                }
+                
+                // Display the solution
                 document.getElementById('solution-container').classList.remove('hidden');
+                displaySolution(solution);
+                document.getElementById('error-message').classList.add('hidden');
+                
             } catch (error) {
+                // Handle errors and display an error message
                 const errorMessage = document.getElementById('error-message');
                 errorMessage.textContent = error.message;
                 errorMessage.classList.remove('hidden');
@@ -263,12 +665,13 @@
             }
         });
 
-        // Clear button functionality
-        document.getElementById('clearBtn').addEventListener('click', function() {
-            document.getElementById('transportation-form').reset();
-            document.getElementById('error-message').classList.add('hidden');
-            document.getElementById('solution-container').classList.add('hidden');
-        });
+        // Add Clear button event listener
+        document.getElementById('clearBtn').addEventListener('click', clearInputs);
+
+        // Add Reset button event listener (you'll need to add this button to your HTML)
+        document.getElementById('resetBtn').addEventListener('click', resetToDefault);
+    });
+
     </script>
 </body>
 </html>
