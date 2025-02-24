@@ -1,5 +1,3 @@
-# lp_app/urls.py
-
 from django.urls import path
 from .views import (
     home,
@@ -23,5 +21,4 @@ urlpatterns = [
     # Transportation problem paths
     path('transportation/', transportation_solver_view, name='transportation'),
     path('transportation/solve/', solve_transportation, name='solve_transportation'),
-
 ]

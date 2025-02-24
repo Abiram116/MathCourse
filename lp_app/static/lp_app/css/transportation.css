@@ -1,0 +1,267 @@
+/* Base styles */
+body {
+    overflow-x: hidden;
+}
+
+/* Title gradient */
+.title-gradient {
+    background: linear-gradient(135deg, #22c55e, #3b82f6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Back button styles */
+.back-button {
+    position: fixed;
+    top: 2rem;
+    left: 2rem;
+    width: 3rem;
+    height: 3rem;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 100;
+}
+
+.back-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+.back-arrow {
+    width: 1.5rem;
+    height: 1.5rem;
+    fill: currentColor;
+}
+
+/* Form styles */
+.form-group {
+    /* Retaining original initial state if needed for animations */
+    opacity: 0;
+    transform: translateY(20px);
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.form-group:hover {
+    transform: translateY(-2px);
+}
+
+/* Input styles */
+input, select, .mq-editable-field {
+    transition: all 0.3s ease;
+}
+
+input:focus, select:focus, .mq-editable-field.mq-focused {
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.3);
+}
+
+/* Clear button styles */
+.clear-button {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.clear-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Matrix layout styles */
+.matrix-container {
+    display: grid;
+    gap: 1rem;
+}
+
+.matrix-row {
+    display: grid;
+    grid-template-columns: 60px 1fr;
+    gap: 1rem;
+    align-items: center;
+}
+
+.matrix-cell {
+    min-width: 120px;
+}
+
+.input-label {
+    text-align: right;
+    padding-right: 0.5rem;
+    color: #9CA3AF;
+}
+
+.cost-input, 
+.supply-input, 
+.demand-input {
+    width: 100%;
+    min-width: 120px;
+    height: 48px;
+}
+
+/* Increase the size of matrix cells */
+#cost-matrix table td input {
+    width: 100%;
+    min-width: 120px;
+    height: 48px;
+}
+
+/* Header label styles */
+.destination-label {
+    text-align: center;
+    color: #9CA3AF;
+    padding: 0.5rem;
+}
+
+/* Supply/Demand container */
+.supply-demand-container {
+    display: grid;
+    grid-template-columns: 60px 1fr;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+/* Adjust the cost matrix container */
+#cost-matrix table {
+    border-spacing: 0.5rem;
+    border-collapse: separate;
+}
+
+/* Main container initial state */
+#mainContainer {
+    opacity: 0;
+}
+
+/* Solution matrix styles */
+#solution-matrix table {
+    background: rgba(31, 41, 55, 0.3);
+    border-radius: 0.5rem;
+}
+
+#solution-matrix td {
+    transition: background-color 0.3s ease;
+}
+
+#solution-matrix td:hover {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+/* Solution container animation */
+#solution-container {
+    transition: all 0.5s ease;
+    transform-origin: top;
+}
+
+#solution-container.hidden {
+    transform: scaleY(0);
+    opacity: 0;
+}
+
+/* Error message animation */
+#error-message {
+    transition: all 0.3s ease;
+    transform-origin: top;
+}
+
+#error-message.hidden {
+    transform: scaleY(0);
+    opacity: 0;
+}
+
+/* MathQuill specific styles */
+.mq-editable-field {
+    background: rgba(55, 65, 81, 0.8);
+    border: 1px solid rgba(75, 85, 99, 0.5);
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    color: white;
+    min-height: 3rem;
+}
+
+.mq-editable-field.mq-focused {
+    border-color: rgba(34, 197, 94, 0.5);
+}
+
+/* Placeholder styles for MathQuill */
+.mq-editable-field[data-placeholder]:empty:before {
+    content: attr(data-placeholder);
+    color: rgba(156, 163, 175, 0.5);
+}
+
+/* Animation classes */
+.fade-in {
+    animation: fadeIn 0.5s ease forwards;
+}
+
+.slide-up {
+    animation: slideUp 0.5s ease forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Loading state styles */
+.loading {
+    position: relative;
+    pointer-events: none;
+}
+
+.loading:after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 1s linear infinite;
+    transform: translate(-50%, -50%);
+}
+
+@keyframes spin {
+    to {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+/* Remove number input spinners for Webkit and Firefox */
+.cost-input::-webkit-outer-spin-button,
+.cost-input::-webkit-inner-spin-button,
+.supply-input::-webkit-outer-spin-button,
+.supply-input::-webkit-inner-spin-button,
+.demand-input::-webkit-outer-spin-button,
+.demand-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.cost-input,
+.supply-input,
+.demand-input {
+    -moz-appearance: textfield;
+}

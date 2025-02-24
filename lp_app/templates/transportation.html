@@ -2,676 +2,370 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transportation Problem Solver</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <style>
-        .title-gradient {
-            background: linear-gradient(45deg, #22c55e, #3b82f6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        .back-button {
-            position: fixed;
-            top: 2rem;
-            left: 2rem;
-            width: 3rem;
-            height: 3rem;
-            background: rgba(31, 41, 55, 0.5);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(75, 85, 99, 0.5);
-            border-radius: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-        }
-        
-        .back-button:hover {
-            background: rgba(31, 41, 55, 0.8);
-            transform: scale(1.05);
-        }
-        
-        .back-arrow {
-            width: 1.5rem;
-            height: 1.5rem;
-            fill: currentColor;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transportation Problem Solver</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.js"></script>
 
-        /* Add new styles for the matrix layout */
-        .matrix-container {
-            display: grid;
-            gap: 1rem;
-        }
-
-        .matrix-row {
-            display: grid;
-            grid-template-columns: 60px 1fr;
-            gap: 1rem;
-            align-items: center;
-        }
-
-        .matrix-cell {
-            min-width: 120px;
-        }
-
-        .input-label {
-            text-align: right;
-            padding-right: 0.5rem;
-            color: #9CA3AF;
-        }
-
-        .cost-input, .supply-input, .demand-input {
-            width: 100%;
-            min-width: 120px;
-            height: 48px;
-        }/* Increase the size of matrix cells */
-        #cost-matrix table td input {
-            width: 100%;
-            min-width: 120px;
-            height: 48px;
-        }
-
-        /* Style for the header labels */
-        .destination-label {
-            text-align: center;
-            color: #9CA3AF;
-            padding: 0.5rem;
-        }
-
-        /* Add styles for supply/demand containers */
-        .supply-demand-container {
-            display: grid;
-            grid-template-columns: 60px 1fr;
-            gap: 1rem;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        /* Adjust the cost matrix container */
-        #cost-matrix table {
-            border-spacing: 0.5rem;
-            border-collapse: separate;
-        }
-        
-        .clear-button {
-            background: rgba(59, 130, 246, 0.1);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            color: #60a5fa;
-        }
-        
-        .clear-button:hover {
-            background: rgba(59, 130, 246, 0.2);
-        }
-
-        #mainContainer {
-            opacity: 0;
-        }
-
-        .form-group {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-
-        .cost-input::-webkit-outer-spin-button,
-        .cost-input::-webkit-inner-spin-button,
-        .supply-input::-webkit-outer-spin-button,
-        .supply-input::-webkit-inner-spin-button,
-        .demand-input::-webkit-outer-spin-button,
-        .demand-input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-
-        .cost-input,
-        .supply-input,
-        .demand-input {
-            -moz-appearance: textfield;
-        }
-
-        #solution-matrix table {
-            background: rgba(31, 41, 55, 0.3);
-            border-radius: 0.5rem;
-        }
-
-        #solution-matrix td {
-            transition: background-color 0.3s ease;
-        }
-
-        #solution-matrix td:hover {
-            background: rgba(59, 130, 246, 0.1);
-        }
-    </style>
+  <!-- Custom CSS for Transportation Solver -->
+  <link href="{% static 'lp_app/css/transportation.css' %}" rel="stylesheet">
 </head>
-<body class="bg-gradient-to-br from-gray-900 to-gray-800 text-gray-100 min-h-screen overflow-x-hidden flex items-center">
-    <a href="/" class="back-button" title="Back to Home">
-        <svg class="back-arrow" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
-        </svg>
-    </a>
+<body class="bg-gradient-to-br from-gray-900 to-gray-800 text-gray-100 min-h-screen overflow-x-hidden">
+  <!-- Back Button -->
+  <a href="/" class="back-button" title="Back to Home">
+      <svg class="back-arrow" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+      </svg>
+  </a>
 
-    <div class="container mx-auto px-4 py-12 max-w-7xl" id="mainContainer">
-        <h1 class="text-5xl font-bold text-center mb-16 title-gradient">
-            Transportation Problem Solver
-        </h1>
-        
-        <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
-            <div class="xl:col-span-6 xl:col-start-4">
-                <div class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-700/50">
-                    <form id="transportation-form" class="space-y-6">
-                        {% csrf_token %}
-                        
-                        <div class="form-group">
-                            <label class="block text-sm font-medium mb-2 text-green-400">Matrix Dimensions</label>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-xs text-gray-400 mb-1">Sources (m)</label>
-                                    <input type="number" id="sources" min="1" value="2" 
-                                        class="w-full bg-gray-700 text-white border border-gray-600 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-400 focus:border-transparent">
-                                </div>
-                                <div>
-                                    <label class="block text-xs text-gray-400 mb-1">Destinations (n)</label>
-                                    <input type="number" id="destinations" min="1" value="2"
-                                        class="w-full bg-gray-700 text-white border border-gray-600 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-400 focus:border-transparent">
-                                </div>
-                            </div>
-                        </div>
+  <!-- Transportation Solver Container -->
+  <div id="transportationContainer" class="container mx-auto px-4 py-12 max-w-7xl">
+      <h1 class="text-5xl font-bold text-center mb-16 title-gradient">
+          Transportation Problem Solver
+      </h1>
+      <form id="transportation-form" class="space-y-6">
+          {% csrf_token %}
+          <!-- Matrix Dimensions -->
+          <div class="form-group">
+              <label class="block text-sm font-medium mb-2 text-green-400">Matrix Dimensions</label>
+              <div class="grid grid-cols-2 gap-4">
+                  <div>
+                      <label class="block text-xs text-gray-400 mb-1">Sources (m)</label>
+                      <input type="number" id="sources" min="1" value="2"
+                          class="w-32 bg-gray-700 text-white border border-gray-600 rounded-xl px-3 py-2 focus:ring-2 focus:ring-green-400 focus:border-transparent">
+                  </div>
+                  <div>
+                      <label class="block text-xs text-gray-400 mb-1">Destinations (n)</label>
+                      <input type="number" id="destinations" min="1" value="2"
+                          class="w-32 bg-gray-700 text-white border border-gray-600 rounded-xl px-3 py-2 focus:ring-2 focus:ring-green-400 focus:border-transparent">
+                  </div>
+              </div>
+          </div>
+          <!-- Unified Transportation Table -->
+          <div class="form-group mt-6">
+              <label class="block text-sm font-medium mb-4 text-green-400">Transportation Problem</label>
+              <div id="transportation-table-container" class="overflow-x-auto">
+                  <!-- Table is generated dynamically -->
+              </div>
+          </div>
+          <!-- Action Buttons -->
+          <div class="flex space-x-4">
+              <button type="submit" id="transSolveBtn"
+                  class="flex-grow bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-medium py-3 px-6 rounded-xl transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-400">
+                  Solve
+              </button>
+              <button type="button" id="transClearBtn"
+                  class="clear-button px-4 py-3 rounded-xl transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-400">
+                  Clear
+              </button>
+              <button type="button" id="transResetBtn"
+                  class="clear-button px-4 py-3 rounded-xl transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-400">
+                  Reset
+              </button>
+          </div>
+      </form>
+      <div id="transErrorMessage" class="text-red-400 mt-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/50 hidden"></div>
+      <div id="transportation-solution-container" class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-700/50 hidden mt-6">
+          <h2 class="text-2xl font-semibold mb-6 text-green-400">Solution</h2>
+          <div id="transSolution" class="text-lg"></div>
+      </div>
+  </div>
 
-                        <div class="form-group">
-                            <label class="block text-sm font-medium mb-4 text-green-400">Cost Matrix</label>
-                            <div id="cost-matrix" class="overflow-x-auto">
-                                <!-- Matrix will be generated here -->
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="block text-sm font-medium mb-2 text-green-400">Supply</label>
-                            <div id="supply-inputs" class="flex flex-wrap gap-2">
-                                <!-- Supply inputs will be generated here -->
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="block text-sm font-medium mb-2 text-green-400">Demand</label>
-                            <div id="demand-inputs" class="flex flex-wrap gap-2">
-                                <!-- Demand inputs will be generated here -->
-                            </div>
-                        </div>
-
-                        <div class="flex space-x-4">
-                            <button type="submit" id="solveBtn"
-                                class="flex-grow bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-medium py-3 px-6 rounded-xl transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-400">
-                                Solve
-                            </button>
-                            <button type="button" id="clearBtn"
-                                class="clear-button px-4 py-3 rounded-xl transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-400">
-                                Clear
-                            </button>
-                            <button type="button" id="resetBtn"
-                                class="clear-button px-4 py-3 rounded-xl transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-400">
-                                Reset
-                            </button>
-                        </div>
-                    </form>
-                    <div id="error-message" class="text-red-400 mt-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/50 hidden"></div>
+  <!-- JavaScript for Transportation Solver -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // GSAP Animation
+        gsap.to('.container', { opacity: 1, duration: 0.8, ease: 'power2.out' });
+        gsap.to('.form-group', { opacity: 1, y: 0, duration: 0.8, stagger: 0.1, ease: 'back.out' });
+      
+        // Generate Transportation Table
+        function generateTransportationTable() {
+          const sources = parseInt(document.getElementById('sources').value);
+          const destinations = parseInt(document.getElementById('destinations').value);
+          const container = document.getElementById('transportation-table-container');
+          container.innerHTML = '';
+          const table = document.createElement('table');
+          table.className = "min-w-full border-collapse bg-gray-800/30";
+          
+          // Create table header
+          const thead = document.createElement('thead');
+          const headerRow1 = document.createElement('tr');
+          let th = document.createElement('th');
+          th.className = "p-2 border border-gray-600";
+          headerRow1.appendChild(th);
+          th = document.createElement('th');
+          th.className = "p-2 border border-gray-600 text-center";
+          th.colSpan = destinations;
+          th.textContent = "Destinations";
+          headerRow1.appendChild(th);
+          th = document.createElement('th');
+          th.className = "p-2 border border-gray-600 bg-gray-700/50 text-center";
+          th.textContent = "Supply";
+          headerRow1.appendChild(th);
+          thead.appendChild(headerRow1);
+      
+          const headerRow2 = document.createElement('tr');
+          th = document.createElement('th');
+          th.className = "p-2 border border-gray-600";
+          headerRow2.appendChild(th);
+          for (let j = 0; j < destinations; j++) {
+            th = document.createElement('th');
+            th.className = "p-2 border border-gray-600 text-center";
+            th.textContent = `D${j+1}`;
+            headerRow2.appendChild(th);
+          }
+          th = document.createElement('th');
+          th.className = "p-2 border border-gray-600 bg-gray-700/50";
+          headerRow2.appendChild(th);
+          thead.appendChild(headerRow2);
+          table.appendChild(thead);
+      
+          // Create table body
+          const tbody = document.createElement('tbody');
+          // Cost rows with supply inputs
+          for (let i = 0; i < sources; i++) {
+            const row = document.createElement('tr');
+            let cell = document.createElement('th');
+            cell.className = "p-2 border border-gray-600 text-center";
+            cell.textContent = `S${i+1}`;
+            row.appendChild(cell);
+            for (let j = 0; j < destinations; j++) {
+              cell = document.createElement('td');
+              cell.className = "p-1 border border-gray-600";
+              const input = document.createElement('input');
+              input.type = "number";
+              input.className = "cost-input w-16 bg-gray-700 text-white border border-gray-600 rounded-lg px-2 py-1";
+              input.dataset.row = i;
+              input.dataset.col = j;
+              cell.appendChild(input);
+              row.appendChild(cell);
+            }
+            cell = document.createElement('td');
+            cell.className = "p-1 border border-gray-600 bg-gray-700/50";
+            const supplyInput = document.createElement('input');
+            supplyInput.type = "number";
+            supplyInput.className = "supply-input w-16 bg-gray-700 text-white border border-gray-600 rounded-lg px-2 py-1";
+            cell.appendChild(supplyInput);
+            row.appendChild(cell);
+            tbody.appendChild(row);
+          }
+          // Demand row
+          const demandRow = document.createElement('tr');
+          demandRow.className = "bg-gray-700/50";
+          let cellDemand = document.createElement('th');
+          cellDemand.className = "p-2 border border-gray-600 text-center";
+          cellDemand.textContent = "Demand";
+          demandRow.appendChild(cellDemand);
+          for (let j = 0; j < destinations; j++) {
+            cellDemand = document.createElement('td');
+            cellDemand.className = "p-1 border border-gray-600";
+            const demandInput = document.createElement('input');
+            demandInput.type = "number";
+            demandInput.className = "demand-input w-16 bg-gray-700 text-white border border-gray-600 rounded-lg px-2 py-1";
+            cellDemand.appendChild(demandInput);
+            demandRow.appendChild(cellDemand);
+          }
+          cellDemand = document.createElement('td');
+          cellDemand.className = "border border-gray-600";
+          demandRow.appendChild(cellDemand);
+          tbody.appendChild(demandRow);
+          table.appendChild(tbody);
+          container.appendChild(table);
+        }
+      
+        function validateTransportationInputs() {
+          const sources = parseInt(document.getElementById('sources').value);
+          const destinations = parseInt(document.getElementById('destinations').value);
+          if (isNaN(sources) || sources < 1) {
+            throw new Error('Number of sources must be a positive number');
+          }
+          if (isNaN(destinations) || destinations < 1) {
+            throw new Error('Number of destinations must be a positive number');
+          }
+          const costInputs = document.querySelectorAll('.cost-input');
+          costInputs.forEach((input, index) => {
+            const value = input.value.trim();
+            if (value === '') {
+              throw new Error(`Cost matrix cell at position ${Math.floor(index / destinations) + 1},${index % destinations + 1} is empty`);
+            }
+            if (isNaN(parseFloat(value)) || parseFloat(value) < 0) {
+              throw new Error(`Cost matrix cell at position ${Math.floor(index / destinations) + 1},${index % destinations + 1} must be a non-negative number`);
+            }
+          });
+          const supplyInputs = document.querySelectorAll('.supply-input');
+          let totalSupply = 0;
+          supplyInputs.forEach((input, index) => {
+            const value = input.value.trim();
+            if (value === '') {
+              throw new Error(`Supply value for source ${index + 1} is empty`);
+            }
+            const supplyValue = parseFloat(value);
+            if (isNaN(supplyValue) || supplyValue < 0) {
+              throw new Error(`Supply value for source ${index + 1} must be a non-negative number`);
+            }
+            totalSupply += supplyValue;
+          });
+          const demandInputs = document.querySelectorAll('.demand-input');
+          let totalDemand = 0;
+          demandInputs.forEach((input, index) => {
+            const value = input.value.trim();
+            if (value === '') {
+              throw new Error(`Demand value for destination ${index + 1} is empty`);
+            }
+            const demandValue = parseFloat(value);
+            if (isNaN(demandValue) || demandValue < 0) {
+              throw new Error(`Demand value for destination ${index + 1} must be a non-negative number`);
+            }
+            totalDemand += demandValue;
+          });
+          if (Math.abs(totalSupply - totalDemand) > 0.0001) {
+            throw new Error(`Total supply (${totalSupply}) must equal total demand (${totalDemand})`);
+          }
+        }
+      
+        function gatherTransportationInputData() {
+          const sources = parseInt(document.getElementById('sources').value);
+          const destinations = parseInt(document.getElementById('destinations').value);
+          const costMatrix = Array(sources).fill().map(() => Array(destinations));
+          document.querySelectorAll('.cost-input').forEach(input => {
+            const i = parseInt(input.dataset.row);
+            const j = parseInt(input.dataset.col);
+            costMatrix[i][j] = parseFloat(input.value) || 0;
+          });
+          const supply = Array.from(document.querySelectorAll('.supply-input')).map(input => parseFloat(input.value) || 0);
+          const demand = Array.from(document.querySelectorAll('.demand-input')).map(input => parseFloat(input.value) || 0);
+          return { costMatrix, supply, demand };
+        }
+      
+        // Updated display function with improved formatting
+        function displayTransportationSolution(solution) {
+            const container = document.getElementById('transportation-solution-container');
+            const solutionDiv = document.getElementById('transSolution');
+            solutionDiv.innerHTML = `
+              <div class="space-y-6">
+                <!-- Status Card -->
+                <div class="bg-gray-800/30 backdrop-blur-lg border border-gray-700/50 rounded-lg p-4 text-gray-100">
+                  <span class="text-green-400 font-semibold">Status:</span>
+                  <span class="ml-1">${solution.solution.status}</span>
                 </div>
-            </div>
-
-            <div class="xl:col-span-6 xl:col-start-4">
-                <div id="solution-container" class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-700/50 hidden">
-                    <h2 class="text-2xl font-semibold mb-6 text-green-400">Solution</h2>
-                    <div class="space-y-4">
-                        <div id="solution-matrix" class="overflow-x-auto"></div>
-                        <div id="total-cost" class="text-lg mt-4"></div>
-                        <div id="status" class="text-lg mt-4 text-gray-300"></div>
-                    </div>
+          
+                <!-- Total Cost Card -->
+                <div class="bg-gray-800/30 backdrop-blur-lg border border-gray-700/50 rounded-lg p-4 text-gray-100">
+                  <span class="text-green-400 font-semibold">Total Cost:</span>
+                  <span class="ml-1">${solution.solution.total_cost.toFixed(2)}</span>
                 </div>
-            </div>
-        </div>
-    </div>
-    
-    <script>
-        // Initialize GSAP animations
-        document.addEventListener('DOMContentLoaded', function() {
-            gsap.to('#mainContainer', {
-                opacity: 1,
-                duration: 0.8,
-                ease: 'power2.out'
-            });
-
-            gsap.to('.form-group', {
-                opacity: 1,
-                y: 0,
-                duration: 0.8,
-                stagger: 0.1,
-                ease: 'back.out'
-            });
-
-            gsap.to('#solveBtn, #clearBtn', {
-                opacity: 1,
-                y: 0,
-                duration: 0.8,
-                stagger: 0.1,
-                ease: 'back.out'
-            }, "-=0.2");
-        });
-
-
-        function validateInputs() {
-            const sources = parseInt(document.getElementById('sources').value);
-            const destinations = parseInt(document.getElementById('destinations').value);
-            
-            // Validate dimensions
-            if (isNaN(sources) || sources < 1) {
-                throw new Error('Number of sources must be a positive number');
-            }
-            if (isNaN(destinations) || destinations < 1) {
-                throw new Error('Number of destinations must be a positive number');
-            }
-
-            // Validate cost matrix values
-            const costInputs = document.querySelectorAll('.cost-input');
-            costInputs.forEach((input, index) => {
-                const value = input.value.trim();
-                if (value === '') {
-                    throw new Error(`Cost matrix cell at position ${Math.floor(index/destinations) + 1},${index%destinations + 1} is empty`);
-                }
-                if (isNaN(parseFloat(value)) || parseFloat(value) < 0) {
-                    throw new Error(`Cost matrix cell at position ${Math.floor(index/destinations) + 1},${index%destinations + 1} must be a non-negative number`);
-                }
-            });
-
-            // Validate supply values
-            const supplyInputs = document.querySelectorAll('.supply-input');
-            let totalSupply = 0;
-            supplyInputs.forEach((input, index) => {
-                const value = input.value.trim();
-                if (value === '') {
-                    throw new Error(`Supply value for source ${index + 1} is empty`);
-                }
-                const supplyValue = parseFloat(value);
-                if (isNaN(supplyValue) || supplyValue < 0) {
-                    throw new Error(`Supply value for source ${index + 1} must be a non-negative number`);
-                }
-                totalSupply += supplyValue;
-            });
-
-            // Validate demand values
-            const demandInputs = document.querySelectorAll('.demand-input');
-            let totalDemand = 0;
-            demandInputs.forEach((input, index) => {
-                const value = input.value.trim();
-                if (value === '') {
-                    throw new Error(`Demand value for destination ${index + 1} is empty`);
-                }
-                const demandValue = parseFloat(value);
-                if (isNaN(demandValue) || demandValue < 0) {
-                    throw new Error(`Demand value for destination ${index + 1} must be a non-negative number`);
-                }
-                totalDemand += demandValue;
-            });
-
-            // Validate total supply equals total demand
-            if (Math.abs(totalSupply - totalDemand) > 0.0001) { // Using small epsilon for floating point comparison
-                throw new Error(`Total supply (${totalSupply}) must equal total demand (${totalDemand})`);
-            }
+          
+                <!-- Iterations Card -->
+                <div class="bg-gray-800/30 backdrop-blur-lg border border-gray-700/50 rounded-lg p-4 text-gray-100">
+                  <span class="text-green-400 font-semibold">Iterations:</span>
+                  <span class="ml-1">${solution.solution.iterations}</span>
+                </div>
+          
+                <!-- Allocation Matrix Card -->
+                <div class="bg-gray-800/30 backdrop-blur-lg border border-gray-700/50 rounded-lg p-4 text-gray-100">
+                  <span class="text-green-400 font-semibold">Allocation Matrix:</span>
+                  <div class="mt-4 overflow-auto">
+                    <table class="min-w-full border border-gray-700 text-gray-200">
+                      <thead>
+                        <tr>
+                          <th class="border border-gray-600 p-2 text-gray-400">Source</th>
+                          ${
+                            solution.solution.allocation[0]
+                              .map((_, j) => `<th class="border border-gray-600 p-2 text-gray-400">D${j + 1}</th>`)
+                              .join('')
+                          }
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${solution.solution.allocation
+                          .map(
+                            (row, i) => `
+                              <tr>
+                                <td class="border border-gray-600 p-2 text-center">S${i + 1}</td>
+                                ${row
+                                  .map(
+                                    val => `<td class="border border-gray-600 p-2 text-center">${val.toFixed(2)}</td>`
+                                  )
+                                  .join('')}
+                              </tr>
+                            `
+                          )
+                          .join('')}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            `;
+            container.classList.remove('hidden');
+            document.getElementById('transErrorMessage').classList.add('hidden');
+          }
+                          
+        function clearTransportationInputs() {
+          document.querySelectorAll('.cost-input, .supply-input, .demand-input').forEach(input => {
+            input.value = '';
+          });
+          document.getElementById('transportation-solution-container').classList.add('hidden');
+          document.getElementById('transErrorMessage').classList.add('hidden');
         }
-
-        // Function to create input element with common styles
-        function createInput(type, className, placeholder) {
-            const input = document.createElement('input');
-            input.type = 'number';
-            input.className = `${className} w-full bg-gray-700 text-white border border-gray-600 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-400 focus:border-transparent`;
-            input.placeholder = placeholder;
-            input.step = 'any';
-            return input;
+      
+        function resetTransportationToDefault() {
+          document.getElementById('sources').value = 2;
+          document.getElementById('destinations').value = 2;
+          generateTransportationTable();
         }
-
-        // Store current matrix before regenerating
-        function storeCurrentValues() {
-            return {
-                costs: Array.from(document.querySelectorAll('.cost-input')).map(input => ({
-                    row: parseInt(input.dataset.row),
-                    col: parseInt(input.dataset.col),
-                    value: input.value
-                })),
-                supply: Array.from(document.querySelectorAll('.supply-input')).map(input => input.value),
-                demand: Array.from(document.querySelectorAll('.demand-input')).map(input => input.value)
-            }
-        }
-
-
-        // Function to generate the cost matrix
-        function generateCostMatrix() {
-            const sources = parseInt(document.getElementById('sources').value);
-            const destinations = parseInt(document.getElementById('destinations').value);
-            const costMatrix = document.getElementById('cost-matrix');
-            
-            costMatrix.innerHTML = '';
-            
-            const table = document.createElement('table');
-            table.className = 'w-full';
-            
-            // Create header row with destination labels
-            const headerRow = document.createElement('tr');
-            headerRow.appendChild(document.createElement('th')); // Empty corner cell
-            for (let j = 0; j < destinations; j++) {
-                const th = document.createElement('th');
-                th.className = 'destination-label';
-                // th.textContent = `D${j + 1}`;
-                headerRow.appendChild(th);
-            }
-            table.appendChild(headerRow);
-            
-            // Create rows for sources
-            for (let i = 0; i < sources; i++) {
-                const row = document.createElement('tr');
-                
-                // Add source label
-                const sourceLabel = document.createElement('td');
-                sourceLabel.className = 'input-label';
-                // sourceLabel.textContent = `S${i + 1}`;
-                row.appendChild(sourceLabel);
-                
-                // Add cost inputs
-                for (let j = 0; j < destinations; j++) {
-                    const td = document.createElement('td');
-                    td.className = 'matrix-cell';
-                    const input = createInput('number', 'cost-input', '0');
-                    input.dataset.row = i;
-                    input.dataset.col = j;
-                    
-                    td.appendChild(input);
-                    row.appendChild(td);
-                }
-                
-                table.appendChild(row);
-            }
-            
-            costMatrix.appendChild(table);
-        }
-
-        // Function to generate supply inputs
-        function generateSupplyInputs() {
-            const sources = parseInt(document.getElementById('sources').value);
-            const supplyInputs = document.getElementById('supply-inputs');
-            
-            // Add label
-            const label = document.createElement('div');
-            label.className = 'input-label';
-            
-            // Create container for inputs
-            const inputsContainer = document.createElement('div');
-            inputsContainer.className = 'grid grid-cols-4 gap-4';
-            
-            for (let i = 0; i < sources; i++) {
-                const div = document.createElement('div');
-                div.className = 'relative';
-                
-                const input = createInput('number', 'supply-input', '0');
-                
-                const label = document.createElement('label');
-                label.className = 'absolute -top-5 left-2 text-xs text-gray-400';
-                // label.textContent = `S${i + 1}`;
-                
-                div.appendChild(label);
-                div.appendChild(input);
-                inputsContainer.appendChild(div);
-            }
-            
-            supplyInputs.innerHTML = '';
-            supplyInputs.appendChild(label);
-            supplyInputs.appendChild(inputsContainer);
-        }
-
-        // Function to generate demand inputs
-        function generateDemandInputs() {
-            const destinations = parseInt(document.getElementById('destinations').value);
-            const demandInputs = document.getElementById('demand-inputs');
-            
-            // Add label
-            const label = document.createElement('div');
-            label.className = 'input-label';
-            
-            // Create container for inputs
-            const inputsContainer = document.createElement('div');
-            inputsContainer.className = 'grid grid-cols-4 gap-4';
-            
-            for (let j = 0; j < destinations; j++) {
-                const div = document.createElement('div');
-                div.className = 'relative';
-                
-                const input = createInput('number', 'demand-input', '0');
-                
-                const label = document.createElement('label');
-                label.className = 'absolute -top-5 left-2 text-xs text-gray-400';
-                // label.textContent = `D${j + 1}`;
-                
-                div.appendChild(label);
-                div.appendChild(input);
-                inputsContainer.appendChild(div);
-            }
-            
-            demandInputs.innerHTML = '';
-            demandInputs.appendChild(label);
-            demandInputs.appendChild(inputsContainer);
-        }
-
-        // Function to gather all input data
-        function gatherInputData() {
-            const sources = parseInt(document.getElementById('sources').value);
-            const destinations = parseInt(document.getElementById('destinations').value);
-            
-            // Gather cost matrix
-            const costMatrix = Array(sources).fill().map(() => Array(destinations));
-            document.querySelectorAll('.cost-input').forEach(input => {
-                const i = parseInt(input.dataset.row);
-                const j = parseInt(input.dataset.col);
-                costMatrix[i][j] = parseFloat(input.value) || 0;
-            });
-            
-            // Gather supply values
-            const supply = Array.from(document.querySelectorAll('.supply-input'))
-                .map(input => parseFloat(input.value) || 0);
-            
-            // Gather demand values
-            const demand = Array.from(document.querySelectorAll('.demand-input'))
-                .map(input => parseFloat(input.value) || 0);
-            
-            return {
-                costMatrix,
-                supply,
-                demand
-            };
-        }
-
-        // Function to display the solution
-        function displaySolution(solution) {
-            const solutionMatrix = document.getElementById('solution-matrix');
-            const sources = solution.solution.length;
-            const destinations = solution.solution[0].length;
-            
-            // Create solution table
-            let html = '<table class="w-full border-collapse"><tr><th></th>';
-            
-            // Add destination headers
-            for (let j = 0; j < destinations; j++) {
-                html += `<th class="p-2 text-center text-gray-400">D${j + 1}</th>`;
-            }
-            html += '</tr>';
-            
-            // Add rows with source labels and values
-            for (let i = 0; i < sources; i++) {
-                html += `<tr><td class="p-2 text-gray-400">S${i + 1}</td>`;
-                for (let j = 0; j < destinations; j++) {
-                    const value = solution.solution[i][j];
-                    html += `<td class="p-2 text-center">${value.toFixed(2)}</td>`;
-                }
-                html += '</tr>';
-            }
-            html += '</table>';
-            
-            solutionMatrix.innerHTML = html;
-            
-            // Display total cost
-            document.getElementById('total-cost').textContent = 
-                `Total Cost: ${solution.total_cost.toFixed(2)}`;
-            
-            // Display status
-            document.getElementById('status').textContent = 
-                `Status: ${solution.status}`;
-        }
-
-        // Function to clear all input values but keep dimensions
-        function clearInputs() {
-            // Clear cost matrix inputs
-            document.querySelectorAll('.cost-input').forEach(input => {
-                input.value = '';
-            });
-            
-            // Clear supply inputs
-            document.querySelectorAll('.supply-input').forEach(input => {
-                input.value = '';
-            });
-            
-            // Clear demand inputs
-            document.querySelectorAll('.demand-input').forEach(input => {
-                input.value = '';
-            });
-            
-            // Hide solution and error containers
-            document.getElementById('solution-container').classList.add('hidden');
-            document.getElementById('error-message').classList.add('hidden');
-        }
-
-        // Function to reset only dimensions to 2x2
-        function resetToDefault() {
-            // Store current values in temp arrays
-            const oldValues = {
-                costs: [],
-                supply: [],
-                demand: []
-            };
-            
-            // Save current values
-            document.querySelectorAll('.cost-input').forEach(input => {
-                oldValues.costs.push({
-                    row: parseInt(input.dataset.row),
-                    col: parseInt(input.dataset.col),
-                    value: input.value
-                });
-            });
-            
-            document.querySelectorAll('.supply-input').forEach(input => {
-                oldValues.supply.push(input.value);
-            });
-            
-            document.querySelectorAll('.demand-input').forEach(input => {
-                oldValues.demand.push(input.value);
-            });
-
-            // Reset dimensions to 2x2
-            document.getElementById('sources').value = 2;
-            document.getElementById('destinations').value = 2;
-            
-            // Regenerate matrices with new dimensions
-            generateCostMatrix();
-            generateSupplyInputs();
-            generateDemandInputs();
-            
-            // Restore values that fit within new dimensions
-            oldValues.costs.forEach(item => {
-                if (item.row < 2 && item.col < 2) {
-                    const input = document.querySelector(`.cost-input[data-row="${item.row}"][data-col="${item.col}"]`);
-                    if (input) input.value = item.value;
-                }
-            });
-            
-            oldValues.supply.slice(0, 2).forEach((value, index) => {
-                const input = document.querySelectorAll('.supply-input')[index];
-                if (input) input.value = value;
-            });
-            
-            oldValues.demand.slice(0, 2).forEach((value, index) => {
-                const input = document.querySelectorAll('.demand-input')[index];
-                if (input) input.value = value;
-            });
-        }
-
-        // Initialize event listeners
-        document.addEventListener('DOMContentLoaded', function() {
-        // Generate initial matrices and inputs
-        generateCostMatrix();
-        generateSupplyInputs();
-        generateDemandInputs();
-        
-        // Add event listeners for dimension changes
-        document.getElementById('sources').addEventListener('change', () => {
-            generateCostMatrix();
-            generateSupplyInputs();
-        });
-        
-        document.getElementById('destinations').addEventListener('change', () => {
-            generateCostMatrix();
-            generateDemandInputs();
-        });
-        
-        // Handle form submission
+      
+        // Initial generation of the transportation table
+        generateTransportationTable();
+        document.getElementById('sources').addEventListener('change', generateTransportationTable);
+        document.getElementById('destinations').addEventListener('change', generateTransportationTable);
+      
         document.getElementById('transportation-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
+          e.preventDefault();
+          try {
+            validateTransportationInputs();
+            const data = gatherTransportationInputData();
+            // Replace with your API endpoint
+            const response = await fetch('/transportation/solve/', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+              },
+              body: JSON.stringify(data)
+            });
             
-            try {
-                // Validate inputs before proceeding
-                validateInputs();
-                
-                // Gather input data to send to the backend
-                const data = gatherInputData();
-                
-                // Make a request to the server to solve the transportation problem
-                const response = await fetch('/solve-transportation/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    },
-                    body: JSON.stringify(data)
-                });
-                
-                // Check if the response is successful
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                
-                const solution = await response.json();
-                
-                if (solution.error) {
-                    throw new Error(solution.error);
-                }
-                
-                // Display the solution
-                document.getElementById('solution-container').classList.remove('hidden');
-                displaySolution(solution);
-                document.getElementById('error-message').classList.add('hidden');
-                
-            } catch (error) {
-                // Handle errors and display an error message
-                const errorMessage = document.getElementById('error-message');
-                errorMessage.textContent = error.message;
-                errorMessage.classList.remove('hidden');
-                document.getElementById('solution-container').classList.add('hidden');
+            if (!response.ok) {
+              const contentType = response.headers.get('content-type');
+              if (contentType && contentType.includes('application/json')) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Server error occurred');
+              } else {
+                const textError = await response.text();
+                throw new Error(`Server error: ${response.status} - ${textError}`);
+              }
             }
+            
+            const solution = await response.json();
+            if (solution.error) {
+              throw new Error(solution.error);
+            }
+            displayTransportationSolution(solution);
+            document.getElementById('transErrorMessage').classList.add('hidden');
+          } catch (error) {
+            const errorMessage = document.getElementById('transErrorMessage');
+            errorMessage.textContent = error.message;
+            errorMessage.classList.remove('hidden');
+            document.getElementById('transportation-solution-container').classList.add('hidden');
+          }
         });
-
-        // Add Clear button event listener
-        document.getElementById('clearBtn').addEventListener('click', clearInputs);
-
-        // Add Reset button event listener (you'll need to add this button to your HTML)
-        document.getElementById('resetBtn').addEventListener('click', resetToDefault);
-    });
-
-    </script>
+      
+        document.getElementById('transClearBtn').addEventListener('click', clearTransportationInputs);
+        document.getElementById('transResetBtn').addEventListener('click', resetTransportationToDefault);
+      });
+        </script>
 </body>
 </html>
