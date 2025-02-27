@@ -22,7 +22,7 @@
   </a>
 
   <!-- Transportation Solver Container -->
-  <div id="transportationContainer" class="container mx-auto px-4 py-12 max-w-7xl">
+  <div id="transportationContainer" class="container mx-auto px-4 py-12 max-w-8xl">
       <h1 class="text-5xl font-bold text-center mb-16 title-gradient">
           Transportation Problem Solver
       </h1>
@@ -137,7 +137,8 @@
               cell.className = "p-1 border border-gray-600";
               const input = document.createElement('input');
               input.type = "number";
-              input.className = "cost-input w-16 bg-gray-700 text-white border border-gray-600 rounded-lg px-2 py-1";
+              input.className = "cost-input bg-gray-700 text-white border border-gray-600 rounded-lg px-1 py-0.5";
+              input.style.width = "40px";
               input.dataset.row = i;
               input.dataset.col = j;
               cell.appendChild(input);
@@ -147,7 +148,8 @@
             cell.className = "p-1 border border-gray-600 bg-gray-700/50";
             const supplyInput = document.createElement('input');
             supplyInput.type = "number";
-            supplyInput.className = "supply-input w-16 bg-gray-700 text-white border border-gray-600 rounded-lg px-2 py-1";
+            supplyInput.className = "supply-input bg-gray-700 text-white border border-gray-600 rounded-lg px-1 py-0.5";
+            supplyInput.style.width = "40px";
             cell.appendChild(supplyInput);
             row.appendChild(cell);
             tbody.appendChild(row);
@@ -164,7 +166,8 @@
             cellDemand.className = "p-1 border border-gray-600";
             const demandInput = document.createElement('input');
             demandInput.type = "number";
-            demandInput.className = "demand-input w-16 bg-gray-700 text-white border border-gray-600 rounded-lg px-2 py-1";
+            demandInput.className = "demand-input bg-gray-700 text-white border border-gray-600 rounded-lg px-1 py-0.5";
+            demandInput.style.width = "40px"; 
             cellDemand.appendChild(demandInput);
             demandRow.appendChild(cellDemand);
           }
