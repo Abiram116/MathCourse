@@ -1,0 +1,366 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fractional Programming Solver</title>
+    <link href="{% static 'lp_app/css/fractional.css' %}" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.js"></script>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-gray-800 text-gray-100 min-h-screen overflow-x-hidden flex items-center">
+    <div class="container mx-auto px-4 py-12 max-w-7xl" id="mainContainer">
+        <h1 class="text-5xl font-bold text-center mb-16 title-gradient">
+            Fractional Programming Solver
+        </h1>
+
+        <!-- Back Button -->
+        <a href="/" class="back-button" title="Back to Home">
+            <svg class="back-arrow" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+            </svg>
+        </a>
+        
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
+            <!-- Input Form -->
+            <div class="xl:col-span-4">
+                <div class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-700/50">
+                    <form id="lp-form" class="space-y-6">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label class="block text-sm font-medium mb-2 text-green-400" for="optimization_type">
+                                Optimization Type
+                            </label>
+                            <select id="optimization_type" name="optimization_type" required
+                                class="w-full bg-gray-700 text-white border border-gray-600 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-400 focus:border-transparent transition-colors duration-200">
+                                <option value="minimize">Minimize</option>
+                                <option value="maximize">Maximize</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="block text-sm font-medium mb-2 text-green-400">
+                                Numerator Function
+                            </label>
+                            <div id="numerator-math"></div>
+                            <input type="hidden" id="numerator" name="numerator">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="block text-sm font-medium mb-2 text-green-400">
+                                Denominator Function
+                            </label>
+                            <div id="denominator-math"></div>
+                            <input type="hidden" id="denominator" name="denominator">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="block text-sm font-medium mb-2 text-green-400">
+                                Constraints
+                            </label>
+                            <div id="constraints-math"></div>
+                            <input type="hidden" id="constraints" name="constraints">
+                            <p class="mt-2 text-sm text-gray-400">Separate constraints with semicolons (;)</p>
+                        </div>
+
+                        <!-- <div class="form-group">
+                            <label class="block text-sm font-medium mb-2 text-green-400" for="variables">
+                                Number of Variables
+                            </label>
+                            <input type="number" id="variables" name="variables" min="1" max="10" value="2" required
+                                class="w-full bg-gray-700 text-white border border-gray-600 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-400 focus:border-transparent transition-colors duration-200">
+                        </div> -->
+
+                        <div class="flex space-x-4">
+                            <button type="submit" id="solveBtn"
+                                class="flex-grow bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-medium py-3 px-6 rounded-xl transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-400">
+                                Solve
+                            </button>
+                            <button type="button" id="clearBtn"
+                                class="clear-button px-4 py-3 rounded-xl transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                Clear
+                            </button>
+                        </div>
+                    </form>
+                    <div id="error-message" class="text-red-400 mt-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/50 hidden"></div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="xl:col-span-8 space-y-6">
+                <div id="solution-container" class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-700/50 hidden">
+                    <h2 class="text-2xl font-semibold mb-6 text-green-400">Results</h2>
+                    <div class="space-y-4">
+                        <div id="solution" class="text-lg"></div>
+                        <div id="optimal-value" class="text-lg"></div>
+                        <div id="iterations" class="text-lg"></div>
+                    </div>
+                </div>
+
+                <div id="explanation-container" class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-700/50">
+                    <h2 class="text-2xl font-semibold mb-6 text-green-400">About Fractional Programming</h2>
+                    <div class="space-y-4 text-gray-300">
+                        <p>
+                            Fractional programming deals with optimizing ratios of functions, such as:
+                        </p>
+                        <div class="flex justify-center py-4">
+                            <div class="bg-gray-700/50 rounded-lg px-6 py-3 inline-block">
+                                max/min f(x) = g(x)/h(x)
+                            </div>
+                        </div>
+                        <p>
+                            This is useful for problems involving efficiency or rates, such as:
+                        </p>
+                        <ul class="list-disc pl-6 space-y-2">
+                            <li>Return on investment (profit/cost)</li>
+                            <li>Efficiency ratios (output/input)</li>
+                            <li>Average cost per unit (total cost/units)</li>
+                            <li>Time efficiency (output/time)</li>
+                        </ul>
+                        <p>
+                            This solver uses the Charnes-Cooper transformation method to convert the fractional problem into a standard linear program that can be solved using the simplex method.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set initial properties for back button
+            gsap.set('.back-button', {
+                opacity: 0,
+                x: -50
+            });
+        
+            // Create a timeline for better control
+            const tl = gsap.timeline({
+                defaults: {
+                    ease: 'power2.out',
+                    duration: 0.8
+                }
+            });
+        
+            // Animation sequence
+            tl.to('#mainContainer', {
+                opacity: 1,
+                duration: 1
+            })
+            
+            // Title animation
+            .from('h1', {
+                y: -50,
+                opacity: 0,
+                duration: 0.8
+            }, "-=0.5")
+        
+            // Back button animation
+            .to('.back-button', {
+                x: 0,
+                opacity: 1,
+                duration: 0.6
+            }, "-=0.6")
+        
+            // Form groups staggered animation
+            .to('.form-group', {
+                opacity: 1,
+                y: 0,
+                stagger: 0.2,
+                duration: 0.8,
+                ease: 'back.out'
+            }, "-=0.4")
+        
+            // Buttons animation
+            .to('#solveBtn, #clearBtn', {
+                opacity: 1,
+                y: 0,
+                duration: 0.8,
+                stagger: 0.1,
+                ease: 'back.out'
+            }, "-=0.2");
+        });
+        
+        // Initialize MathQuill
+        var MQ = MathQuill.getInterface(2);
+        
+        // Initialize form elements
+        const form = document.getElementById('lp-form');
+        const clearBtn = document.getElementById('clearBtn');
+        const errorMessage = document.getElementById('error-message');
+        const solutionContainer = document.getElementById('solution-container');
+        const optimizationType = document.getElementById('optimization_type');
+
+        // Initialize MathQuill fields with placeholders
+        var numeratorMathField = MQ.MathField(document.getElementById('numerator-math'), {
+            handlers: {
+                edit: function() {
+                    document.getElementById('numerator').value = numeratorMathField.latex();
+                    updatePlaceholderVisibility(numeratorMathField);
+                }
+            },
+            spaceBehavesLikeTab: true,
+            restrictMismatchedBrackets: true
+        });
+        numeratorMathField.el().setAttribute('data-placeholder', '3x + 4y');
+
+        var denominatorMathField = MQ.MathField(document.getElementById('denominator-math'), {
+            handlers: {
+                edit: function() {
+                    document.getElementById('denominator').value = denominatorMathField.latex();
+                    updatePlaceholderVisibility(denominatorMathField);
+                }
+            },
+            spaceBehavesLikeTab: true,
+            restrictMismatchedBrackets: true
+        });
+        denominatorMathField.el().setAttribute('data-placeholder', 'x + 2y + 1');
+
+        var constraintsMathField = MQ.MathField(document.getElementById('constraints-math'), {
+            handlers: {
+                edit: function() {
+                    document.getElementById('constraints').value = constraintsMathField.latex();
+                    updatePlaceholderVisibility(constraintsMathField);
+                }
+            },
+            spaceBehavesLikeTab: true,
+            restrictMismatchedBrackets: true
+        });
+        constraintsMathField.el().setAttribute('data-placeholder', 'x + y ≤ 10; 2x + 3y ≤ 15; x ≥ 0; y ≥ 0');
+
+        // Function to format constraints for backend
+        function formatConstraints(latex) {
+            // Replace MathQuill's \leq and \geq with <= and >= respectively
+            let formatted = latex
+                .replace(/\\leq/g, '<=')
+                .replace(/\\geq/g, '>=')
+                .replace(/\\le/g, '<=')
+                .replace(/\\ge/g, '>=');
+            
+            // Split constraints by semicolon and trim whitespace
+            return formatted.split(';')
+                .map(constraint => constraint.trim())
+                .filter(constraint => constraint.length > 0)
+                .join(';');
+        }
+
+        // Function to update placeholder visibility
+        function updatePlaceholderVisibility(mathField) {
+            const isEmpty = mathField.latex().trim() === '';
+            mathField.el().classList.toggle('mq-empty', isEmpty);
+        }
+
+        // Initial placeholder visibility
+        updatePlaceholderVisibility(numeratorMathField);
+        updatePlaceholderVisibility(denominatorMathField);
+        updatePlaceholderVisibility(constraintsMathField);
+
+        // Form submission handler
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+        
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="inline-block animate-spin mr-2">↻</span> Solving...';
+            errorMessage.classList.add('hidden');
+            solutionContainer.classList.add('hidden');
+        
+            try {
+                // Format the constraints before sending
+                const formattedConstraints = formatConstraints(document.getElementById('constraints').value);
+                
+                const formData = {
+                    optimization_type: document.getElementById('optimization_type').value,
+                    numerator: document.getElementById('numerator').value,
+                    denominator: document.getElementById('denominator').value,
+                    constraints: formattedConstraints,
+                    variables: document.getElementById('variables').value
+                };
+        
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+                const response = await fetch('/fractional/solve/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(formData),
+                    credentials: 'same-origin'
+                });
+        
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'An error occurred while solving');
+                }
+        
+                const result = await response.json();
+        
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+        
+                // Show solution container
+                solutionContainer.classList.remove('hidden');
+        
+                // Format solution display
+                const solutionHtml = [];
+                for (const [variable, value] of Object.entries(result.solution)) {
+                    solutionHtml.push(`${variable} = ${parseFloat(value).toFixed(4)}`);
+                }
+                
+                // Update solution text
+                document.getElementById('solution').textContent = `Optimal Solution: ${solutionHtml.join(', ')}`;
+                document.getElementById('optimal-value').textContent = `Optimal Value: ${parseFloat(result.optimal_value).toFixed(4)}`;
+                document.getElementById('iterations').textContent = `Iterations: ${result.iterations}`;
+                
+                // Animate results containers
+                const resultsTl = gsap.timeline({
+                    defaults: { duration: 0.5, ease: 'power2.out' }
+                });
+        
+                resultsTl.fromTo(solutionContainer,
+                    { opacity: 0, y: 20 },
+                    { opacity: 1, y: 0 }
+                );
+        
+                // Smooth scroll to results
+                solutionContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } catch (error) {
+                errorMessage.textContent = error.message;
+                errorMessage.classList.remove('hidden');
+                gsap.fromTo(errorMessage,
+                    { opacity: 0, y: -20 },
+                    { opacity: 1, y: 0, duration: 0.4 }
+                );
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Solve';
+            }
+        });
+        
+        // Clear form function
+        clearBtn.addEventListener('click', function() {
+            optimizationType.selectedIndex = 0;
+            numeratorMathField.latex('');
+            denominatorMathField.latex('');
+            constraintsMathField.latex('');
+            document.getElementById('numerator').value = '';
+            document.getElementById('denominator').value = '';
+            document.getElementById('constraints').value = '';
+            document.getElementById('variables').value = '2';
+            
+            updatePlaceholderVisibility(numeratorMathField);
+            updatePlaceholderVisibility(denominatorMathField);
+            updatePlaceholderVisibility(constraintsMathField);
+            
+            solutionContainer.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+        });
+    </script>
+</body>
+</html>

@@ -6,7 +6,9 @@ from .views import (
     simplex_solver_view,
     solve_simplex_lp,
     transportation_solver_view,
-    solve_transportation
+    solve_transportation,
+    fractional_solver_view,
+    solve_fractional
 )
 
 # URLs for Linear Programming app
@@ -21,4 +23,7 @@ urlpatterns = [
     # Transportation problem paths
     path('transportation/', transportation_solver_view, name='transportation'),
     path('transportation/solve/', solve_transportation, name='solve_transportation'),
+    # Fractional programming paths
+    path('fractional/', fractional_solver_view, name='fractional'),
+    path('fractional/solve/', solve_fractional, name='solve_fractional'),
 ]
