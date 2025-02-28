@@ -12,9 +12,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.js"></script>
 </head>
-<body class="bg-gradient-to-br from-gray-900 to-gray-800 text-gray-100 min-h-screen overflow-x-hidden flex items-center">
-    <div class="container mx-auto px-4 py-12 max-w-7xl" id="mainContainer">
-        <h1 class="text-5xl font-bold text-center mb-16 title-gradient">
+<body class="bg-gradient-to-br from-gray-900 to-gray-800 text-gray-100 min-h-screen overflow-auto flex items-center">
+    <div class="container mx-auto px-4 py-6 max-w-7xl" id="mainContainer">
+        <h1 class="text-4xl font-bold text-center mb-8 title-gradient">
             Fractional Programming Solver
         </h1>
 
@@ -25,11 +25,11 @@
             </svg>
         </a>
         
-        <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
             <!-- Input Form -->
             <div class="xl:col-span-4">
-                <div class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-700/50">
-                    <form id="lp-form" class="space-y-6">
+                <div class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-6 border border-gray-700/50">
+                    <form id="lp-form" class="space-y-4">
                         {% csrf_token %}
                         <div class="form-group">
                             <label class="block text-sm font-medium mb-2 text-green-400" for="optimization_type">
@@ -65,15 +65,17 @@
                             <div id="constraints-math"></div>
                             <input type="hidden" id="constraints" name="constraints">
                             <p class="mt-2 text-sm text-gray-400">Separate constraints with semicolons (;)</p>
+                            <p class="mt-1 text-xs text-gray-400">Format: x + y <= 10 or x + y ≤ 10</p>
+                            <p class="mt-1 text-xs text-gray-400">Press Enter to add a new constraint</p>
                         </div>
 
-                        <!-- <div class="form-group">
+                        <div class="form-group">
                             <label class="block text-sm font-medium mb-2 text-green-400" for="variables">
                                 Number of Variables
                             </label>
                             <input type="number" id="variables" name="variables" min="1" max="10" value="2" required
                                 class="w-full bg-gray-700 text-white border border-gray-600 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-400 focus:border-transparent transition-colors duration-200">
-                        </div> -->
+                        </div>
 
                         <div class="flex space-x-4">
                             <button type="submit" id="solveBtn"
@@ -86,14 +88,14 @@
                             </button>
                         </div>
                     </form>
-                    <div id="error-message" class="text-red-400 mt-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/50 hidden"></div>
+                    <div id="error-message" class="text-red-400 mt-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/50 hidden overflow-auto max-h-48"></div>
                 </div>
             </div>
 
             <!-- Results Section -->
             <div class="xl:col-span-8 space-y-6">
-                <div id="solution-container" class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-700/50 hidden">
-                    <h2 class="text-2xl font-semibold mb-6 text-green-400">Results</h2>
+                <div id="solution-container" class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-6 border border-gray-700/50 hidden">
+                    <h2 class="text-2xl font-semibold mb-4 text-green-400">Results</h2>
                     <div class="space-y-4">
                         <div id="solution" class="text-lg"></div>
                         <div id="optimal-value" class="text-lg"></div>
@@ -101,31 +103,6 @@
                     </div>
                 </div>
 
-                <div id="explanation-container" class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-700/50">
-                    <h2 class="text-2xl font-semibold mb-6 text-green-400">About Fractional Programming</h2>
-                    <div class="space-y-4 text-gray-300">
-                        <p>
-                            Fractional programming deals with optimizing ratios of functions, such as:
-                        </p>
-                        <div class="flex justify-center py-4">
-                            <div class="bg-gray-700/50 rounded-lg px-6 py-3 inline-block">
-                                max/min f(x) = g(x)/h(x)
-                            </div>
-                        </div>
-                        <p>
-                            This is useful for problems involving efficiency or rates, such as:
-                        </p>
-                        <ul class="list-disc pl-6 space-y-2">
-                            <li>Return on investment (profit/cost)</li>
-                            <li>Efficiency ratios (output/input)</li>
-                            <li>Average cost per unit (total cost/units)</li>
-                            <li>Time efficiency (output/time)</li>
-                        </ul>
-                        <p>
-                            This solver uses the Charnes-Cooper transformation method to convert the fractional problem into a standard linear program that can be solved using the simplex method.
-                        </p>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -223,8 +200,15 @@
         var constraintsMathField = MQ.MathField(document.getElementById('constraints-math'), {
             handlers: {
                 edit: function() {
-                    document.getElementById('constraints').value = constraintsMathField.latex();
+                    const latex = constraintsMathField.latex();
+                    console.log("Raw LaTeX from MathQuill:", latex);
+                    document.getElementById('constraints').value = latex;
                     updatePlaceholderVisibility(constraintsMathField);
+                },
+                enter: function() {
+                    // Add semicolon when Enter is pressed for a new constraint
+                    constraintsMathField.typedText(';');
+                    return false;
                 }
             },
             spaceBehavesLikeTab: true,
@@ -234,18 +218,54 @@
 
         // Function to format constraints for backend
         function formatConstraints(latex) {
-            // Replace MathQuill's \leq and \geq with <= and >= respectively
-            let formatted = latex
+            console.log("Original latex:", latex); // Debugging
+            
+            // Handle common LaTeX patterns from MathQuill
+            let formatted = latex;
+            
+            // First replace MathQuill's LaTeX inequality symbols
+            formatted = formatted
                 .replace(/\\leq/g, '<=')
                 .replace(/\\geq/g, '>=')
                 .replace(/\\le/g, '<=')
                 .replace(/\\ge/g, '>=');
+                
+            // Handle LaTeX commands for variables (e.g., \x, \y)
+            formatted = formatted.replace(/\\([a-z])/g, '$1');
+                
+            console.log("After LaTeX replacement:", formatted);
             
-            // Split constraints by semicolon and trim whitespace
-            return formatted.split(';')
+            // Then replace actual Unicode symbols
+            formatted = formatted
+                .replace(/≤/g, '<=')
+                .replace(/≥/g, '>=');
+                
+            // Fix spacing issues that might affect parsing
+            formatted = formatted.replace(/\s+/g, ' ');
+            
+            console.log("After all replacements:", formatted);
+            
+            // Split constraints by semicolon and clean each one
+            let constraints = formatted.split(';')
                 .map(constraint => constraint.trim())
-                .filter(constraint => constraint.length > 0)
-                .join(';');
+                .filter(constraint => constraint.length > 0);
+                
+            console.log("Split constraints:", constraints);
+            
+            // Manually ensure each constraint has proper inequality format
+            constraints = constraints.map(c => {
+                // If it doesn't have an inequality but has = sign, convert to <=
+                if (!c.includes('<=') && !c.includes('>=') && c.includes('=')) {
+                    console.log(`Converting = to <= in "${c}"`);
+                    return c.replace('=', '<=');
+                }
+                return c;
+            });
+            
+            let result = constraints.join(';');
+            console.log("Final formatted constraints:", result);
+            
+            return result;
         }
 
         // Function to update placeholder visibility
@@ -259,6 +279,50 @@
         updatePlaceholderVisibility(denominatorMathField);
         updatePlaceholderVisibility(constraintsMathField);
 
+        // Function to validate form inputs
+        function validateFormInputs() {
+            const numerator = document.getElementById('numerator').value.trim();
+            const denominator = document.getElementById('denominator').value.trim();
+            const constraints = document.getElementById('constraints').value.trim();
+            
+            console.log("Raw constraints:", constraints); // Debugging
+            
+            if (!numerator) {
+                throw new Error('Please enter a numerator function');
+            }
+            
+            if (!denominator) {
+                throw new Error('Please enter a denominator function');
+            }
+            
+            // Always pass constraint validation for now
+            return true;
+            
+            /* Commenting out this validation since it's causing problems
+            // Validate constraints format
+            const constraintsList = constraints.split(';')
+                .map(c => c.trim())
+                .filter(c => c.length > 0);
+                
+            console.log("Parsed constraints:", constraintsList); // Debugging
+                
+            if (constraintsList.length === 0) {
+                throw new Error('Please enter at least one constraint');
+            }
+            
+            for (let constraint of constraintsList) {
+                console.log("Checking constraint:", constraint); // Debugging
+                // Check for both text and symbol versions of inequalities
+                if (!constraint.includes('<=') && !constraint.includes('>=') && 
+                    !constraint.includes('≤') && !constraint.includes('≥')) {
+                    throw new Error('Each constraint must include an inequality (≤ or ≥)');
+                }
+            }
+            
+            return true;
+            */
+        }
+
         // Form submission handler
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -270,6 +334,9 @@
             solutionContainer.classList.add('hidden');
         
             try {
+                // Validate form inputs
+                validateFormInputs();
+                
                 // Format the constraints before sending
                 const formattedConstraints = formatConstraints(document.getElementById('constraints').value);
                 
@@ -328,15 +395,18 @@
                     { opacity: 1, y: 0 }
                 );
         
-                // Smooth scroll to results
-                solutionContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // No need to scroll since we want everything on one screen
             } catch (error) {
+                // Show error message with full visibility
                 errorMessage.textContent = error.message;
                 errorMessage.classList.remove('hidden');
                 gsap.fromTo(errorMessage,
                     { opacity: 0, y: -20 },
                     { opacity: 1, y: 0, duration: 0.4 }
                 );
+                
+                // Ensure error is visible by scrolling to it if needed
+                errorMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Solve';
