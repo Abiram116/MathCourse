@@ -168,17 +168,43 @@ def solve_fractional(request):
                 return JsonResponse({'error': 'Invalid JSON data'}, status=400)
             
             # Validate required fields
-            required_fields = ['optimization_type', 'numerator', 'denominator', 'constraints', 'variables']
+            required_fields = ['optimization_type', 'numerator', 'denominator', 'constraints']
             if not all(key in data for key in required_fields):
                 missing = [field for field in required_fields if field not in data]
                 return JsonResponse({'error': f'Missing required fields: {missing}'}, status=400)
             
+            # Determine number of variables automatically
+            # Check if variables field exists and is valid
             try:
-                num_vars = int(data['variables'])
-                if num_vars < 1:
-                    raise ValueError("Number of variables must be positive")
-                if num_vars > 26:
-                    raise ValueError("Maximum 26 variables (a-z) supported")
+                if 'variables' in data and data['variables']:
+                    num_vars = int(data['variables'])
+                    if num_vars < 1:
+                        raise ValueError("Number of variables must be positive")
+                    if num_vars > 26:
+                        raise ValueError("Maximum 26 variables (a-z) supported")
+                else:
+                    # Auto-detect variables from expressions
+                    variables_used = set()
+                    
+                    # Scan numerator for variables
+                    for char in data['numerator']:
+                        if char.isalpha() and char.lower() in string.ascii_lowercase:
+                            variables_used.add(char.lower())
+                    
+                    # Scan denominator for variables
+                    for char in data['denominator']:
+                        if char.isalpha() and char.lower() in string.ascii_lowercase:
+                            variables_used.add(char.lower())
+                    
+                    # Scan constraints for variables
+                    for char in data['constraints']:
+                        if char.isalpha() and char.lower() in string.ascii_lowercase:
+                            variables_used.add(char.lower())
+                    
+                    # Get the number of unique variables
+                    num_vars = max(2, len(variables_used))  # At least 2 variables
+                    
+                    print(f"Auto-detected {num_vars} variables: {variables_used}")
             except ValueError as e:
                 return JsonResponse({'error': str(e)}, status=400)
             

@@ -69,13 +69,9 @@
                             <p class="mt-1 text-xs text-gray-400">Press Enter to add a new constraint</p>
                         </div>
 
-                        <div class="form-group">
-                            <label class="block text-sm font-medium mb-2 text-green-400" for="variables">
-                                Number of Variables
-                            </label>
-                            <input type="number" id="variables" name="variables" min="1" max="10" value="2" required
-                                class="w-full bg-gray-700 text-white border border-gray-600 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-400 focus:border-transparent transition-colors duration-200">
-                        </div>
+                        <!-- Variables count is now optional and hidden -->
+                        <input type="hidden" id="variables" name="variables" value="2">
+                        <p class="text-xs text-gray-400 mt-1">The solver will automatically detect the variables from your expressions.</p>
 
                         <div class="flex space-x-4">
                             <button type="submit" id="solveBtn"
