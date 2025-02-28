@@ -95,7 +95,18 @@
             <!-- Results Section -->
             <div class="xl:col-span-8 space-y-6">
                 <div id="solution-container" class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-6 border border-gray-700/50 hidden">
-                    <h2 class="text-2xl font-semibold mb-4 text-green-400">Results</h2>
+                    <h2 class="text-2xl font-semibold mb-4 text-green-400">Fractional Form</h2>
+                    <div class="space-y-4 mb-6">
+                        <div id="problem-statement" class="text-lg"></div>
+                    </div>
+                    
+                    <h2 class="text-2xl font-semibold mb-4 text-green-400">Linear Form (For Simplex)</h2>
+                    <div class="space-y-4 mb-6">
+                        <div id="linear-objective" class="text-lg"></div>
+                        <div id="linear-constraints" class="text-lg"></div>
+                    </div>
+                    
+                    <h2 class="text-2xl font-semibold mb-4 text-green-400">Solution</h2>
                     <div class="space-y-4">
                         <div id="solution" class="text-lg"></div>
                         <div id="optimal-value" class="text-lg"></div>
@@ -183,7 +194,7 @@
             spaceBehavesLikeTab: true,
             restrictMismatchedBrackets: true
         });
-        numeratorMathField.el().setAttribute('data-placeholder', '3x + 4y');
+        numeratorMathField.el().setAttribute('data-placeholder', '-2x + y + 2');
 
         var denominatorMathField = MQ.MathField(document.getElementById('denominator-math'), {
             handlers: {
@@ -195,7 +206,7 @@
             spaceBehavesLikeTab: true,
             restrictMismatchedBrackets: true
         });
-        denominatorMathField.el().setAttribute('data-placeholder', 'x + 2y + 1');
+        denominatorMathField.el().setAttribute('data-placeholder', 'x + 3y + 4');
 
         var constraintsMathField = MQ.MathField(document.getElementById('constraints-math'), {
             handlers: {
@@ -214,7 +225,7 @@
             spaceBehavesLikeTab: true,
             restrictMismatchedBrackets: true
         });
-        constraintsMathField.el().setAttribute('data-placeholder', 'x + y ≤ 10; 2x + 3y ≤ 15; x ≥ 0; y ≥ 0');
+        constraintsMathField.el().setAttribute('data-placeholder', '-x + y ≤ 4; 2x + y ≤ 14; x ≤ 6; x ≥ 0; y ≥ 0');
 
         // Function to format constraints for backend
         function formatConstraints(latex) {
@@ -380,10 +391,25 @@
                     solutionHtml.push(`${variable} = ${parseFloat(value).toFixed(4)}`);
                 }
                 
+                // Display fractional form
+                document.getElementById('problem-statement').innerHTML = `
+                    <strong>Objective:</strong> ${result.original_form.objective}<br>
+                    <strong>Constraints:</strong><br>${result.original_form.constraints.map(c => `• ${c}`).join('<br>')}
+                `;
+                
+                // Display linear form (for simplex)
+                document.getElementById('linear-objective').innerHTML = `
+                    <strong>Objective:</strong> ${result.linear_form.objective}
+                `;
+                
+                document.getElementById('linear-constraints').innerHTML = `
+                    <strong>Constraints:</strong><br>${result.linear_form.constraints.map(c => `• ${c}`).join('<br>')}
+                `;
+                
                 // Update solution text
-                document.getElementById('solution').textContent = `Optimal Solution: ${solutionHtml.join(', ')}`;
-                document.getElementById('optimal-value').textContent = `Optimal Value: ${parseFloat(result.optimal_value).toFixed(4)}`;
-                document.getElementById('iterations').textContent = `Iterations: ${result.iterations}`;
+                document.getElementById('solution').innerHTML = `<strong>Optimal Solution:</strong> ${solutionHtml.join(', ')}`;
+                document.getElementById('optimal-value').innerHTML = `<strong>Optimal Value:</strong> ${parseFloat(result.optimal_value).toFixed(4)}`;
+                document.getElementById('iterations').innerHTML = `<strong>Iterations:</strong> ${result.iterations}`;
                 
                 // Animate results containers
                 const resultsTl = gsap.timeline({
@@ -394,6 +420,8 @@
                     { opacity: 0, y: 20 },
                     { opacity: 1, y: 0 }
                 );
+                
+                // No simplex button needed
         
                 // No need to scroll since we want everything on one screen
             } catch (error) {

@@ -13,21 +13,17 @@ def fractional_solver_view(request):
     return render(request, 'fractional.html')
 
 def get_variable_mapping(num_vars):
-    """Create a mapping of alphabetical variables to indices.
-    Always include x and y variables regardless of num_vars value.
-    """
-    # Make sure x and y are always available (most common variables)
-    variables = ['x', 'y']
-    
-    # Add more variables if needed
-    if num_vars > 2:
-        # Skip x and y which are already in our list
-        additional_vars = [v for v in string.ascii_lowercase[2:num_vars] 
-                          if v not in variables]
-        variables.extend(additional_vars)
-    
-    # Only keep the first num_vars elements
-    variables = variables[:num_vars]
+    """Create a mapping of sequential x,y,z... variables to indices."""
+    variables = []
+    for i in range(num_vars):
+        if i == 0:
+            variables.append('x')
+        elif i == 1:
+            variables.append('y')
+        elif i == 2:
+            variables.append('z')
+        else:
+            variables.append(f'x{i+1}')
     
     print(f"Variable mapping for {num_vars} variables: {variables}")
     return {var: idx for idx, var in enumerate(variables)}
@@ -311,11 +307,179 @@ def solve_fractional(request):
             var_names = list(string.ascii_lowercase[:num_vars])
             solution = {var: float(val) for var, val in zip(var_names, x)}
             
-            # Return solution
+            # Generate original problem information
+            var_names = list(string.ascii_lowercase[:num_vars])
+            
+            # Create original form strings
+            orig_objective = "minimize" if not maximize else "maximize"
+            
+            # Format numerator
+            numerator_terms = []
+            for i in range(num_vars):
+                if numerator_coeffs[i] != 0:
+                    coeff = numerator_coeffs[i]
+                    var = var_names[i]
+                    if coeff == 1:
+                        numerator_terms.append(var)
+                    elif coeff == -1:
+                        numerator_terms.append(f"-{var}")
+                    elif coeff < 0:
+                        numerator_terms.append(f"-{abs(coeff)}{var}")
+                    else:
+                        numerator_terms.append(f"{coeff}{var}")
+            
+            numerator_str = " + ".join(numerator_terms).replace("+ -", "- ")
+            if numerator_const != 0:
+                if numerator_str:
+                    numerator_str += f" + {numerator_const}" if numerator_const > 0 else f" - {abs(numerator_const)}"
+                else:
+                    numerator_str = str(numerator_const)
+            
+            # Format denominator
+            denominator_terms = []
+            for i in range(num_vars):
+                if denominator_coeffs[i] != 0:
+                    coeff = denominator_coeffs[i]
+                    var = var_names[i]
+                    if coeff == 1:
+                        denominator_terms.append(var)
+                    elif coeff == -1:
+                        denominator_terms.append(f"-{var}")
+                    elif coeff < 0:
+                        denominator_terms.append(f"-{abs(coeff)}{var}")
+                    else:
+                        denominator_terms.append(f"{coeff}{var}")
+            
+            denominator_str = " + ".join(denominator_terms).replace("+ -", "- ")
+            if denominator_const != 0:
+                if denominator_str:
+                    denominator_str += f" + {denominator_const}" if denominator_const > 0 else f" - {abs(denominator_const)}"
+                else:
+                    denominator_str = str(denominator_const)
+            
+            # Create objective function string - original fractional form
+            fractional_obj_str = f"{orig_objective} ({numerator_str})/({denominator_str})"
+            
+            # Create transformed linear form (what would be used in simplex)
+            # Using Charnes-Cooper transformation: Let t = 1/(denominator), x' = xt, y' = yt, etc.
+            linear_obj_terms = []
+            for i in range(num_vars):
+                if numerator_coeffs[i] != 0:
+                    coeff = numerator_coeffs[i]
+                    var = f"{var_names[i]}'"  # x', y', etc.
+                    if coeff == 1:
+                        linear_obj_terms.append(var)
+                    elif coeff == -1:
+                        linear_obj_terms.append(f"-{var}")
+                    elif coeff < 0:
+                        linear_obj_terms.append(f"-{abs(coeff)}{var}")
+                    else:
+                        linear_obj_terms.append(f"{coeff}{var}")
+            
+            if numerator_const != 0:
+                term = f"{numerator_const}t" if numerator_const != 1 else "t"
+                if numerator_const < 0:
+                    term = f"-{abs(numerator_const)}t" if abs(numerator_const) != 1 else "-t"
+                linear_obj_terms.append(term)
+            
+            # Create the linear objective function
+            linear_obj_str = f"{orig_objective} {' + '.join(linear_obj_terms).replace('+ -', '- ')}"
+            
+            # Create the transformed constraints
+            linear_constraints = []
+            
+            # Denominator constraint
+            denom_terms = []
+            for i in range(num_vars):
+                if denominator_coeffs[i] != 0:
+                    coeff = denominator_coeffs[i]
+                    var = f"{var_names[i]}'"  # x', y', etc.
+                    if coeff == 1:
+                        denom_terms.append(var)
+                    elif coeff == -1:
+                        denom_terms.append(f"-{var}")
+                    elif coeff < 0:
+                        denom_terms.append(f"-{abs(coeff)}{var}")
+                    else:
+                        denom_terms.append(f"{coeff}{var}")
+            
+            if denominator_const != 0:
+                term = f"{denominator_const}t" if denominator_const != 1 else "t"
+                if denominator_const < 0:
+                    term = f"-{abs(denominator_const)}t" if abs(denominator_const) != 1 else "-t"
+                denom_terms.append(term)
+            
+            linear_constraints.append(f"{' + '.join(denom_terms).replace('+ -', '- ')} = 1")
+            
+            # Format original constraints
+            original_constraints = []
+            
+            # Also transform the original constraints for the linear form
+            for constraint in constraints:
+                # Original constraint
+                orig_terms = []
+                for j in range(num_vars):
+                    if constraint[j] != 0:
+                        coeff = constraint[j]
+                        var = var_names[j]
+                        if coeff == 1:
+                            orig_terms.append(var)
+                        elif coeff == -1:
+                            orig_terms.append(f"-{var}")
+                        elif coeff < 0:
+                            orig_terms.append(f"-{abs(coeff)}{var}")
+                        else:
+                            orig_terms.append(f"{coeff}{var}")
+                
+                rhs = constraint[-1]
+                if len(orig_terms) > 0:
+                    constraint_str = " + ".join(orig_terms).replace("+ -", "- ") + f" ≤ {rhs}"
+                    original_constraints.append(constraint_str)
+                
+                # Transformed constraint
+                linear_terms = []
+                for j in range(num_vars):
+                    if constraint[j] != 0:
+                        coeff = constraint[j]
+                        var = f"{var_names[j]}'"  # x', y', etc.
+                        if coeff == 1:
+                            linear_terms.append(var)
+                        elif coeff == -1:
+                            linear_terms.append(f"-{var}")
+                        elif coeff < 0:
+                            linear_terms.append(f"-{abs(coeff)}{var}")
+                        else:
+                            linear_terms.append(f"{coeff}{var}")
+                
+                if len(linear_terms) > 0:
+                    lin_constraint_str = " + ".join(linear_terms).replace("+ -", "- ") + f" ≤ {rhs}t"
+                    linear_constraints.append(lin_constraint_str)
+            
+            # Add non-negativity constraints to original
+            for var in var_names:
+                original_constraints.append(f"{var} ≥ 0")
+                
+            # Add non-negativity constraints to linear form
+            linear_constraints.append(", ".join([f"{var_names[i]}'" for i in range(num_vars)]) + ", t ≥ 0")
+            
+            # Create transformation explanation
+            transformation_explanation = (f"Using Charnes-Cooper transformation: Let t = 1/({denominator_str}), " + 
+                                        ", ".join([f"{var_names[i]}' = {var_names[i]}·t" for i in range(num_vars)]))
+            
+            # Return solution with both original and transformed form
             return JsonResponse({
                 'solution': solution,
                 'optimal_value': optimal_value,
-                'iterations': res.nit  # Number of iterations
+                'iterations': res.nit,  # Number of iterations
+                'original_form': {
+                    'objective': fractional_obj_str,
+                    'constraints': original_constraints
+                },
+                'linear_form': {
+                    'transformation': transformation_explanation,
+                    'objective': linear_obj_str,
+                    'constraints': linear_constraints
+                }
             })
             
         except Exception as e:
