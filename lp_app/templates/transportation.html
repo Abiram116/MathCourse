@@ -13,6 +13,95 @@
   <!-- Custom CSS for Transportation Solver -->
   <link href="{% static 'lp_app/css/transportation.css' %}" rel="stylesheet">
 </head>
+<style>
+  /* Custom styles for dynamic input fields */
+.dynamic-input {
+  min-width: 50px; /* Enough for 3-4 digits */
+  max-width: 100px;
+  text-align: center;
+  transition: width 0.2s ease;
+}
+
+/* Make sure the inputs look consistent */
+.cost-input, .supply-input, .demand-input {
+  text-align: center;
+}
+
+/* Responsive table styles */
+#transportation-table-container {
+  overflow-x: auto;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+/* Ensure consistent cell sizes for better alignment */
+#transportation-table-container td, 
+#transportation-table-container th {
+  min-width: 60px;
+  max-width: 60px;
+  height: 60px;
+  padding: 0.25rem;
+}
+
+/* Highlight dimensions inputs */
+.dimension-input {
+  background-color: rgba(74, 222, 128, 0.1);
+  border-color: rgba(74, 222, 128, 0.3);
+}
+
+/* Diagonal divider for the corner cell */
+.corner-cell {
+  position: relative;
+  background: transparent;
+  width: 10px;
+height: 10px;
+}  
+
+.corner-cell::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to bottom right, transparent calc(50% - 1px), #4a5568, transparent calc(50% + 1px));
+}
+
+.corner-top-text {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  font-size: 0.75rem;
+  z-index: 1;
+}
+
+.corner-bottom-text {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  font-size: 0.75rem;
+  z-index: 1;
+}
+
+/* Compact table with fixed dimensions */
+table {
+  border-collapse: collapse;
+  width: auto;
+  table-layout: fixed;
+}
+
+/* Remove extra padding/margin */
+#transportationContainer {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+</style>
+
 <body class="bg-gradient-to-br from-gray-900 to-gray-800 text-gray-100 min-h-screen overflow-x-hidden">
   <!-- Back Button -->
   <a href="/" class="back-button" title="Back to Home">
@@ -22,11 +111,11 @@
   </a>
 
   <!-- Transportation Solver Container -->
-  <div id="transportationContainer" class="container mx-auto px-4 py-12 max-w-8xl">
-      <h1 class="text-5xl font-bold text-center mb-16 title-gradient">
+  <div id="transportationContainer" class="container mx-auto px-4 py-8 max-w-6xl">
+      <h1 class="text-4xl font-bold text-center mb-8 title-gradient">
           Transportation Problem Solver
       </h1>
-      <form id="transportation-form" class="space-y-6">
+      <form id="transportation-form" class="space-y-4">
           {% csrf_token %}
           <!-- Matrix Dimensions -->
           <div class="form-group">
@@ -35,18 +124,18 @@
                   <div>
                       <label class="block text-xs text-gray-400 mb-1">Sources (m)</label>
                       <input type="number" id="sources" min="1" value="2"
-                          class="w-32 bg-gray-700 text-white border border-gray-600 rounded-xl px-3 py-2 focus:ring-2 focus:ring-green-400 focus:border-transparent">
+                          class="dynamic-input dimension-input bg-gray-700 text-white border border-gray-600 rounded-xl px-3 py-2 focus:ring-2 focus:ring-green-400 focus:border-transparent">
                   </div>
                   <div>
                       <label class="block text-xs text-gray-400 mb-1">Destinations (n)</label>
                       <input type="number" id="destinations" min="1" value="2"
-                          class="w-32 bg-gray-700 text-white border border-gray-600 rounded-xl px-3 py-2 focus:ring-2 focus:ring-green-400 focus:border-transparent">
+                          class="dynamic-input dimension-input bg-gray-700 text-white border border-gray-600 rounded-xl px-3 py-2 focus:ring-2 focus:ring-green-400 focus:border-transparent">
                   </div>
               </div>
           </div>
           <!-- Unified Transportation Table -->
-          <div class="form-group mt-6">
-              <label class="block text-sm font-medium mb-4 text-green-400">Transportation Problem</label>
+          <div class="form-group mt-4">
+              <label class="block text-sm font-medium mb-2 text-green-400">Transportation Problem</label>
               <div id="transportation-table-container" class="overflow-x-auto">
                   <!-- Table is generated dynamically -->
               </div>
@@ -68,8 +157,8 @@
           </div>
       </form>
       <div id="transErrorMessage" class="text-red-400 mt-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/50 hidden"></div>
-      <div id="transportation-solution-container" class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-700/50 hidden mt-6">
-          <h2 class="text-2xl font-semibold mb-6 text-green-400">Solution</h2>
+      <div id="transportation-solution-container" class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-6 border border-gray-700/50 hidden mt-6">
+          <h2 class="text-2xl font-semibold mb-4 text-green-400">Solution</h2>
           <div id="transSolution" class="text-lg"></div>
       </div>
   </div>
@@ -81,46 +170,106 @@
         gsap.to('.container', { opacity: 1, duration: 0.8, ease: 'power2.out' });
         gsap.to('.form-group', { opacity: 1, y: 0, duration: 0.8, stagger: 0.1, ease: 'back.out' });
       
+        // Function to adjust input width based on content
+        function adjustInputWidth(input) {
+            const value = input.value;
+            // Default width for 3-4 digits
+            let width = 50;
+            
+            if (value.length > 0) {
+                // Add width per character, approximately 8px per digit (reduced from 10px)
+                width = Math.max(50, Math.min(100, 40 + (value.length * 8)));
+            }
+            
+            // For dimension inputs, keep minimum width slightly larger
+            if (input.classList.contains('dimension-input')) {
+                width = Math.max(width, 60);
+            }
+            
+            input.style.width = width + 'px';
+        }
+        
+        // Initialize dimensions input fields with dynamic resizing
+        const sourcesInput = document.getElementById('sources');
+        const destinationsInput = document.getElementById('destinations');
+        
+        sourcesInput.addEventListener('input', function() {
+            adjustInputWidth(this);
+            // Wait a small amount of time to let the value stabilize
+            setTimeout(generateTransportationTable, 300);
+        });
+        
+        destinationsInput.addEventListener('input', function() {
+            adjustInputWidth(this);
+            // Wait a small amount of time to let the value stabilize
+            setTimeout(generateTransportationTable, 300);
+        });
+        
+        // Initialize input fields widths
+        adjustInputWidth(sourcesInput);
+        adjustInputWidth(destinationsInput);
+        
         // Generate Transportation Table
         function generateTransportationTable() {
           const sources = parseInt(document.getElementById('sources').value);
           const destinations = parseInt(document.getElementById('destinations').value);
+          
+          // Validate dimensions before generating table
+          if (isNaN(sources) || sources < 1 || sources > 20) {
+            document.getElementById('transErrorMessage').textContent = "Number of sources must be between 1 and 20";
+            document.getElementById('transErrorMessage').classList.remove('hidden');
+            return;
+          }
+          
+          if (isNaN(destinations) || destinations < 1 || destinations > 20) {
+            document.getElementById('transErrorMessage').textContent = "Number of destinations must be between 1 and 20";
+            document.getElementById('transErrorMessage').classList.remove('hidden');
+            return;
+          }
+          
+          document.getElementById('transErrorMessage').classList.add('hidden');
+          
           const container = document.getElementById('transportation-table-container');
           container.innerHTML = '';
           const table = document.createElement('table');
-          table.className = "min-w-full border-collapse bg-gray-800/30";
+          table.className = "border-collapse bg-gray-800/30 mx-auto";
           
           // Create table header
           const thead = document.createElement('thead');
-          const headerRow1 = document.createElement('tr');
-          let th = document.createElement('th');
-          th.className = "p-2 border border-gray-600";
-          headerRow1.appendChild(th);
-          th = document.createElement('th');
-          th.className = "p-2 border border-gray-600 text-center";
-          th.colSpan = destinations;
-          th.textContent = "Destinations";
-          headerRow1.appendChild(th);
-          th = document.createElement('th');
-          th.className = "p-2 border border-gray-600 bg-gray-700/50 text-center";
-          th.textContent = "Supply";
-          headerRow1.appendChild(th);
-          thead.appendChild(headerRow1);
-      
-          const headerRow2 = document.createElement('tr');
-          th = document.createElement('th');
-          th.className = "p-2 border border-gray-600";
-          headerRow2.appendChild(th);
+          const headerRow = document.createElement('tr');
+          
+          // Create corner cell with diagonal divider and labels
+          let cornerCell = document.createElement('th');
+          cornerCell.className = "corner-cell p-2 border border-gray-600 text-center";
+          
+          // Add the Sources and Destinations text
+          const sourcesText = document.createElement('span');
+          sourcesText.className = "corner-top-text text-xs text-gray-400";
+          sourcesText.textContent = "Sources";
+          
+          const destinationsText = document.createElement('span');
+          destinationsText.className = "corner-bottom-text text-xs text-gray-400";
+          destinationsText.textContent = "Destinations";
+          
+          cornerCell.appendChild(sourcesText);
+          cornerCell.appendChild(destinationsText);
+          headerRow.appendChild(cornerCell);
+          
+          // Add destination columns
           for (let j = 0; j < destinations; j++) {
-            th = document.createElement('th');
+            let th = document.createElement('th');
             th.className = "p-2 border border-gray-600 text-center";
             th.textContent = `D${j+1}`;
-            headerRow2.appendChild(th);
+            headerRow.appendChild(th);
           }
-          th = document.createElement('th');
-          th.className = "p-2 border border-gray-600 bg-gray-700/50";
-          headerRow2.appendChild(th);
-          thead.appendChild(headerRow2);
+          
+          // Add Supply column header
+          let supplyHeader = document.createElement('th');
+          supplyHeader.className = "p-2 border border-gray-600 bg-gray-700/50 text-center";
+          supplyHeader.textContent = "Supply";
+          headerRow.appendChild(supplyHeader);
+          
+          thead.appendChild(headerRow);
           table.appendChild(thead);
       
           // Create table body
@@ -134,22 +283,26 @@
             row.appendChild(cell);
             for (let j = 0; j < destinations; j++) {
               cell = document.createElement('td');
-              cell.className = "p-1 border border-gray-600";
+              cell.className = "p-1 border border-gray-600 text-center";
               const input = document.createElement('input');
               input.type = "number";
-              input.className = "cost-input bg-gray-700 text-white border border-gray-600 rounded-lg px-1 py-0.5";
-              input.style.width = "40px";
+              input.className = "cost-input dynamic-input bg-gray-700 text-white border border-gray-600 rounded-lg px-1 py-0.5";
               input.dataset.row = i;
               input.dataset.col = j;
+              input.addEventListener('input', function() {
+                adjustInputWidth(this);
+              });
               cell.appendChild(input);
               row.appendChild(cell);
             }
             cell = document.createElement('td');
-            cell.className = "p-1 border border-gray-600 bg-gray-700/50";
+            cell.className = "p-1 border border-gray-600 bg-gray-700/50 text-center";
             const supplyInput = document.createElement('input');
             supplyInput.type = "number";
-            supplyInput.className = "supply-input bg-gray-700 text-white border border-gray-600 rounded-lg px-1 py-0.5";
-            supplyInput.style.width = "40px";
+            supplyInput.className = "supply-input dynamic-input bg-gray-700 text-white border border-gray-600 rounded-lg px-1 py-0.5";
+            supplyInput.addEventListener('input', function() {
+              adjustInputWidth(this);
+            });
             cell.appendChild(supplyInput);
             row.appendChild(cell);
             tbody.appendChild(row);
@@ -163,11 +316,13 @@
           demandRow.appendChild(cellDemand);
           for (let j = 0; j < destinations; j++) {
             cellDemand = document.createElement('td');
-            cellDemand.className = "p-1 border border-gray-600";
+            cellDemand.className = "p-1 border border-gray-600 text-center";
             const demandInput = document.createElement('input');
             demandInput.type = "number";
-            demandInput.className = "demand-input bg-gray-700 text-white border border-gray-600 rounded-lg px-1 py-0.5";
-            demandInput.style.width = "40px"; 
+            demandInput.className = "demand-input dynamic-input bg-gray-700 text-white border border-gray-600 rounded-lg px-1 py-0.5";
+            demandInput.addEventListener('input', function() {
+              adjustInputWidth(this);
+            });
             cellDemand.appendChild(demandInput);
             demandRow.appendChild(cellDemand);
           }
@@ -177,6 +332,16 @@
           tbody.appendChild(demandRow);
           table.appendChild(tbody);
           container.appendChild(table);
+          
+          // Initialize all input widths
+          document.querySelectorAll('.dynamic-input').forEach(input => {
+            adjustInputWidth(input);
+          });
+          
+          // Adjust the table container size to fit the content exactly
+          const tableWidth = table.offsetWidth;
+          container.style.width = tableWidth + 'px';
+          container.style.maxWidth = tableWidth + 'px';
         }
       
         function validateTransportationInputs() {
@@ -248,7 +413,7 @@
             const container = document.getElementById('transportation-solution-container');
             const solutionDiv = document.getElementById('transSolution');
             solutionDiv.innerHTML = `
-              <div class="space-y-6">
+              <div class="space-y-4">
                 <!-- Status Card -->
                 <div class="bg-gray-800/30 backdrop-blur-lg border border-gray-700/50 rounded-lg p-4 text-gray-100">
                   <span class="text-green-400 font-semibold">Status:</span>
@@ -271,13 +436,13 @@
                 <div class="bg-gray-800/30 backdrop-blur-lg border border-gray-700/50 rounded-lg p-4 text-gray-100">
                   <span class="text-green-400 font-semibold">Allocation Matrix:</span>
                   <div class="mt-4 overflow-auto">
-                    <table class="min-w-full border border-gray-700 text-gray-200">
+                    <table class="mx-auto border border-gray-700 text-gray-200 table-fixed">
                       <thead>
                         <tr>
-                          <th class="border border-gray-600 p-2 text-gray-400">Source</th>
+                          <th class="border border-gray-600 p-2 text-gray-400 w-16">Source</th>
                           ${
                             solution.solution.allocation[0]
-                              .map((_, j) => `<th class="border border-gray-600 p-2 text-gray-400">D${j + 1}</th>`)
+                              .map((_, j) => `<th class="border border-gray-600 p-2 text-gray-400 w-16">D${j + 1}</th>`)
                               .join('')
                           }
                         </tr>
@@ -305,11 +470,15 @@
             `;
             container.classList.remove('hidden');
             document.getElementById('transErrorMessage').classList.add('hidden');
+            
+            // Scroll to solution
+            container.scrollIntoView({behavior: 'smooth'});
           }
                           
         function clearTransportationInputs() {
           document.querySelectorAll('.cost-input, .supply-input, .demand-input').forEach(input => {
             input.value = '';
+            adjustInputWidth(input); // Reset width to default
           });
           document.getElementById('transportation-solution-container').classList.add('hidden');
           document.getElementById('transErrorMessage').classList.add('hidden');
@@ -318,13 +487,16 @@
         function resetTransportationToDefault() {
           document.getElementById('sources').value = 2;
           document.getElementById('destinations').value = 2;
+          // Update the dimensions input widths
+          adjustInputWidth(document.getElementById('sources'));
+          adjustInputWidth(document.getElementById('destinations'));
           generateTransportationTable();
+          document.getElementById('transportation-solution-container').classList.add('hidden');
+          document.getElementById('transErrorMessage').classList.add('hidden');
         }
       
         // Initial generation of the transportation table
         generateTransportationTable();
-        document.getElementById('sources').addEventListener('change', generateTransportationTable);
-        document.getElementById('destinations').addEventListener('change', generateTransportationTable);
       
         document.getElementById('transportation-form').addEventListener('submit', async function(e) {
           e.preventDefault();
@@ -363,12 +535,26 @@
             errorMessage.textContent = error.message;
             errorMessage.classList.remove('hidden');
             document.getElementById('transportation-solution-container').classList.add('hidden');
+            
+            // Scroll to error message
+            errorMessage.scrollIntoView({behavior: 'smooth'});
           }
         });
       
         document.getElementById('transClearBtn').addEventListener('click', clearTransportationInputs);
         document.getElementById('transResetBtn').addEventListener('click', resetTransportationToDefault);
+        
+        // Adjust the table container on window resize
+        window.addEventListener('resize', function() {
+          const table = document.querySelector('#transportation-table-container table');
+          if (table) {
+            const container = document.getElementById('transportation-table-container');
+            const tableWidth = table.offsetWidth;
+            container.style.width = tableWidth + 'px';
+            container.style.maxWidth = tableWidth + 'px';
+          }
+        });
       });
-        </script>
+  </script>
 </body>
 </html>
