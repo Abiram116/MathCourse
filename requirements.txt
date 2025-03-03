@@ -1,6 +1,7 @@
+asgiref==3.8.1
 Django==4.2.19
-matplotlib==3.10.1
-networkx==3.2.1
-numpy==2.2.3
-osmnx==2.0.1
-scipy==1.15.2
+gunicorn==23.0.0
+packaging==24.2
+sqlparse==0.5.3
+typing_extensions==4.12.2
+whitenoise==6.9.0
