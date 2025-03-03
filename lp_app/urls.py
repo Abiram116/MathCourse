@@ -10,6 +10,7 @@ from .views import (
     fractional_solver_view,
     solve_fractional
 )
+from .views.base_views import dijkstra_view, shortest_path
 
 # URLs for Linear Programming app
 urlpatterns = [
@@ -26,4 +27,7 @@ urlpatterns = [
     # Fractional programming paths
     path('fractional/', fractional_solver_view, name='fractional'),
     path('fractional/solve/', solve_fractional, name='solve_fractional'),
+    # Dijkstra's algorithm paths
+    path('dijkstra/', dijkstra_view, name='dijkstra'),
+    path('api/shortest_path/', shortest_path, name='shortest_path'),
 ]
