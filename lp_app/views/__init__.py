@@ -1,4 +1,4 @@
-from .base_views import home
+from .base_views import home, dijkstra_view, shortest_path
 from .graphical_views import graphical_solver, solve_lp
 from .simplex_views import simplex_solver_view, solve_simplex_lp
 from .transportation_views import transportation_solver_view, solve_transportation
@@ -13,5 +13,7 @@ __all__ = [
     'transportation_solver_view',
     'solve_transportation',
     'fractional_solver_view',
-    'solve_fractional'
+    'solve_fractional',
+    'dijkstra_view',
+    'shortest_path'
 ]

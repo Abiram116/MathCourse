@@ -1,0 +1,359 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dijkstra's Algorithm</title>
+    <link href="{% static 'lp_app/css/graphical.css' %}" rel="stylesheet">
+    <link href="{% static 'lp_app/css/dijkstra.css' %}" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-gray-800 text-gray-100 min-h-screen overflow-x-hidden">
+    <div class="container mx-auto px-4 py-12 max-w-7xl" id="mainContainer">
+        <h1 class="text-5xl font-bold text-center mb-8 title-gradient">
+            Dijkstra's Algorithm
+        </h1>
+        
+        <!-- Back Button -->
+        <a href="/" class="back-button" title="Back to Home">
+            <svg class="back-arrow" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+            </svg>
+        </a>
+
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
+            <!-- Map Instructions Panel -->
+            <div class="xl:col-span-4">
+                <div class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-700/50">
+                    <h2 class="text-2xl font-semibold mb-6 text-green-400">Shortest Path Finder</h2>
+                    <div class="space-y-6">
+                        <div class="form-group">
+                            <p class="text-gray-300 mb-4">This demonstration uses Dijkstra's algorithm with dynamic programming to find the shortest path between two points on a map.</p>
+                            
+                            <div class="mb-4">
+                                <h3 class="text-lg font-medium text-green-400 mb-2">How to use:</h3>
+                                <ol class="list-decimal list-inside space-y-2 text-gray-300">
+                                    <li>Click on the map to set your <span class="text-green-400 font-medium">starting point</span></li>
+                                    <li>Click again to set your <span class="text-blue-400 font-medium">destination</span></li>
+                                    <li>Click the Calculate button to find the shortest path</li>
+                                </ol>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div id="point-info" class="bg-gray-700/50 rounded-xl p-4 mb-4 hidden">
+                                <div id="start-coordinates" class="mb-2"></div>
+                                <div id="end-coordinates"></div>
+                            </div>
+                        </div>
+
+                        <div class="flex space-x-4">
+                            <button id="calculate-path"
+                                class="flex-grow bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-medium py-3 px-6 rounded-xl transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-400" disabled>
+                                Calculate Shortest Path
+                            </button>
+                            <button id="reset-btn"
+                                class="clear-button px-4 py-3 rounded-xl transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                Reset
+                            </button>
+                        </div>
+                    </div>
+                    <div id="error-message" class="text-red-400 mt-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/50 hidden"></div>
+                </div>
+
+                <!-- Results Panel -->
+                <div id="results-container" class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-700/50 mt-6 hidden">
+                    <h2 class="text-2xl font-semibold mb-4 text-green-400">Results</h2>
+                    <div class="space-y-4">
+                        <div id="distance-result" class="text-lg"></div>
+                        <div id="time-result" class="text-lg"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map Section -->
+            <div class="xl:col-span-8">
+                <div class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-700/50">
+                    <div id="map" class="rounded-xl" style="height: 600px; width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set initial properties for back button
+            gsap.set('.back-button', {
+                opacity: 0,
+                x: -50
+            });
+        
+            // Create a timeline for better control
+            const tl = gsap.timeline({
+                defaults: {
+                    ease: 'power2.out',
+                    duration: 0.8
+                }
+            });
+        
+            // Animation sequence
+            tl.to('#mainContainer', {
+                opacity: 1,
+                duration: 1
+            })
+            
+            // Title animation
+            .from('h1', {
+                y: -50,
+                opacity: 0,
+                duration: 0.8
+            }, "-=0.5")
+        
+            // Back button animation
+            .to('.back-button', {
+                x: 0,
+                opacity: 1,
+                duration: 0.6
+            }, "-=0.6")
+        
+            // Form groups staggered animation
+            .to('.form-group', {
+                opacity: 1,
+                y: 0,
+                stagger: 0.2,
+                duration: 0.8,
+                ease: 'back.out'
+            }, "-=0.4")
+        
+            // Buttons animation
+            .to('#calculate-path, #reset-btn', {
+                opacity: 1,
+                y: 0,
+                duration: 0.8,
+                stagger: 0.1,
+                ease: 'back.out'
+            }, "-=0.2");
+        });
+
+        // Initialize map
+        const map = L.map('map').setView([17.3850, 78.4867], 13);
+
+        L.tileLayer(`https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=JzQHhjoLXOMC2Y8JMlhf`, {
+            attribution: ''
+        }).addTo(map);
+
+        let startPoint, endPoint;
+        let startMarker, endMarker;
+        let pathLine;
+        
+        const calculateBtn = document.getElementById('calculate-path');
+        const resetBtn = document.getElementById('reset-btn');
+        const pointInfo = document.getElementById('point-info');
+        const startCoordinates = document.getElementById('start-coordinates');
+        const endCoordinates = document.getElementById('end-coordinates');
+        const resultsContainer = document.getElementById('results-container');
+        const distanceResult = document.getElementById('distance-result');
+        const timeResult = document.getElementById('time-result');
+        const errorMessage = document.getElementById('error-message');
+
+        map.on('click', function(e) {
+            if (!startPoint) {
+                startPoint = e.latlng;
+                startMarker = L.marker(startPoint, {
+                    icon: L.divIcon({
+                        className: 'custom-div-icon',
+                        html: `<div style="background-color:#10b981; width:12px; height:12px; border-radius:50%; border:2px solid white;"></div>`,
+                        iconSize: [12, 12],
+                        iconAnchor: [6, 6]
+                    })
+                }).addTo(map).bindPopup('Start Point').openPopup();
+                
+                startCoordinates.innerHTML = `<span class="text-green-400 font-medium">Start:</span> ${startPoint.lat.toFixed(6)}, ${startPoint.lng.toFixed(6)}`;
+                pointInfo.classList.remove('hidden');
+                
+                updateCalculateButtonState();
+            } else if (!endPoint) {
+                endPoint = e.latlng;
+                endMarker = L.marker(endPoint, {
+                    icon: L.divIcon({
+                        className: 'custom-div-icon',
+                        html: `<div style="background-color:#3b82f6; width:12px; height:12px; border-radius:50%; border:2px solid white;"></div>`,
+                        iconSize: [12, 12],
+                        iconAnchor: [6, 6]
+                    })
+                }).addTo(map).bindPopup('End Point').openPopup();
+                
+                endCoordinates.innerHTML = `<span class="text-blue-400 font-medium">End:</span> ${endPoint.lat.toFixed(6)}, ${endPoint.lng.toFixed(6)}`;
+                updateCalculateButtonState();
+            }
+        });
+
+        function updateCalculateButtonState() {
+            if (startPoint && endPoint) {
+                calculateBtn.disabled = false;
+                calculateBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else {
+                calculateBtn.disabled = true;
+                calculateBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        calculateBtn.addEventListener('click', function() {
+            if (startPoint && endPoint) {
+                errorMessage.classList.add('hidden');
+                calculateBtn.disabled = true;
+                calculateBtn.innerHTML = '<span class="inline-block animate-spin mr-2">↻</span> Calculating...';
+                
+                // Call Django backend to calculate the path
+                fetch(`/api/shortest_path/?start_lat=${startPoint.lat}&start_lng=${startPoint.lng}&end_lat=${endPoint.lat}&end_lng=${endPoint.lng}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Remove previous path if exists
+                        if (pathLine) {
+                            map.removeLayer(pathLine);
+                        }
+                        
+                        // Display the path returned from Django
+                        const waypoints = data.path;
+                        
+                        // Display the path
+                        pathLine = L.polyline(waypoints, {
+                            color: '#10b981',
+                            weight: 5,
+                            opacity: 0.7,
+                            lineJoin: 'round'
+                        }).addTo(map);
+                        
+                        // Calculate distance and time
+                        const distance = calculateDistance(waypoints);
+                        const time = calculateTime(distance);
+                        
+                        // Show results
+                        distanceResult.textContent = `Distance: ${distance.toFixed(2)} km`;
+                        timeResult.textContent = `Estimated Time: ${time} minutes`;
+                        resultsContainer.classList.remove('hidden');
+                        
+                        // Animate results
+                        gsap.fromTo(resultsContainer,
+                            { opacity: 0, y: 20 },
+                            { opacity: 1, y: 0, duration: 0.5 }
+                        );
+                        
+                        // Fit map to show the complete path
+                        map.fitBounds(pathLine.getBounds(), { padding: [50, 50] });
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        errorMessage.textContent = 'Error calculating path. Please try different points.';
+                        errorMessage.classList.remove('hidden');
+                        gsap.fromTo(errorMessage,
+                            { opacity: 0, y: -20 },
+                            { opacity: 1, y: 0, duration: 0.4 }
+                        );
+                    })
+                    .finally(() => {
+                        calculateBtn.disabled = false;
+                        calculateBtn.textContent = 'Calculate Shortest Path';
+                    });
+            } else {
+                errorMessage.textContent = 'Please select both start and end points.';
+                errorMessage.classList.remove('hidden');
+            }
+        });
+
+        resetBtn.addEventListener('click', function() {
+            // Clear map markers and path
+            if (startMarker) map.removeLayer(startMarker);
+            if (endMarker) map.removeLayer(endMarker);
+            if (pathLine) map.removeLayer(pathLine);
+            
+            // Reset variables
+            startPoint = null;
+            endPoint = null;
+            startMarker = null;
+            endMarker = null;
+            pathLine = null;
+            
+            // Hide info panels
+            pointInfo.classList.add('hidden');
+            resultsContainer.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+            
+            // Reset button state
+            updateCalculateButtonState();
+            
+            // Reset zoom
+            map.setView([17.3850, 78.4867], 13);
+        });
+
+        // Calculate approximate distance in kilometers
+        function calculateDistance(points) {
+            let totalDistance = 0;
+            
+            for (let i = 0; i < points.length - 1; i++) {
+                totalDistance += haversineDistance(points[i], points[i + 1]);
+            }
+            
+            return totalDistance;
+        }
+
+        // Haversine formula to calculate distance between two points
+        function haversineDistance(point1, point2) {
+            const R = 6371; // Earth's radius in km
+            const dLat = (point2.lat - point1.lat) * Math.PI / 180;
+            const dLon = (point2.lng - point1.lng) * Math.PI / 180;
+            
+            const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(point1.lat * Math.PI / 180) * Math.cos(point2.lat * Math.PI / 180) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+            
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        // Calculate estimated time based on average speed of 30 km/h
+        function calculateTime(distance) {
+            const speed = 30; // km/h
+            const timeHours = distance / speed;
+            const timeMinutes = Math.round(timeHours * 60);
+            return timeMinutes;
+        }
+
+        async function calculateShortestPath(start, end) {
+            const url = `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`;
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                console.log("OSRM API Response:", data); // Debugging line
+                
+                if (data.routes && data.routes.length > 0) {
+                    const route = data.routes[0];
+                    const coordinates = route.geometry.coordinates.map(coord => ({ lat: coord[1], lng: coord[0] }));
+                    
+                    console.log("Route Coordinates:", coordinates); // Debugging line
+                    
+                    return coordinates;
+                } else {
+                    throw new Error("No route found");
+                }
+            } catch (error) {
+                console.error("Error fetching route:", error);
+                throw error;
+            }
+        }
+    </script>
+</body>
+</html>

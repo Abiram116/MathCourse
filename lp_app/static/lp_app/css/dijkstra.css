@@ -1,0 +1,103 @@
+/* Additional CSS for Dijkstra's page */
+:root {
+    --color-primary: #10b981;
+    --color-secondary: #3b82f6;
+    --color-background: #374151;
+    --color-border: #4B5563;
+    --color-text: white;
+    --color-error: #ef4444;
+    --transition-duration: 0.3s;
+    --border-radius: 0.75rem;
+}
+
+#mainContainer {
+    opacity: 0;
+}
+
+/* Form Group Animations */
+.form-group {
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+#calculate-path, #reset-btn {
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+#map {
+    width: 100%;
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    transition: all var(--transition-duration) ease;
+}
+
+.leaflet-container {
+    border-radius: var(--border-radius);
+}
+
+.leaflet-popup-content-wrapper {
+    background: #2d3748;
+    color: white;
+    border-radius: 8px;
+}
+
+.leaflet-popup-tip {
+    background: #2d3748;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.title-gradient {
+    background: linear-gradient(to right, var(--color-primary), var(--color-secondary));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-align: center;
+    width: 100%;
+    padding: 0.5rem 0;
+    line-height: 1.4;
+}
+
+.back-button {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: rgba(17, 24, 39, 0.8);
+    backdrop-filter: blur(8px);
+    padding: 10px;
+    border-radius: 50%;
+    border: 1px solid rgba(75, 85, 99, 0.5);
+    cursor: pointer;
+    transition: all var(--transition-duration) ease;
+    z-index: 1000;
+    opacity: 0;
+    transform: translateX(-50px);
+}
+
+.back-button:hover {
+    transform: scale(1.1);
+    background: rgba(17, 24, 39, 0.9);
+}
+
+.back-arrow {
+    width: 24px;
+    height: 24px;
+    fill: var(--color-primary);
+}
+
+.clear-button {
+    background: rgba(59, 130, 246, 0.2);
+    color: var(--color-secondary);
+    border: 1px solid var(--color-secondary);
+    transition: all var(--transition-duration) ease;
+}
+
+.clear-button:hover {
+    background: rgba(59, 130, 246, 0.3);
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+}
