@@ -109,6 +109,8 @@ input:focus {
 .corner-cell {
   position: relative;
   background: rgba(31, 41, 55, 0.7) !important;
+  width: 250px;
+  height: 150px;
 }
 
 .corner-cell::after {
@@ -125,18 +127,18 @@ input:focus {
 .corner-top-text {
   position: absolute;
   top: 8px;
-  left: 8px;
-  font-size: 0.75rem;
-  z-index: 1;
+  right: 8px;
+  font-size: 0.6rem;
+  z-index: 1000;
   color: rgba(156, 163, 175, 1);
 }
 
 .corner-bottom-text {
   position: absolute;
   bottom: 8px;
-  right: 8px;
-  font-size: 0.75rem;
-  z-index: 1;
+  left: 8px;
+  font-size: 0.6rem;
+  z-index: 1000;
   color: rgba(156, 163, 175, 1);
 }
 
@@ -297,11 +299,11 @@ tr.bg-gray-700\/50, td.bg-gray-700\/50, th.bg-gray-700\/50 {
         
         // Add the Sources and Destinations text
         const sourcesText = document.createElement('span');
-        sourcesText.className = "corner-top-text text-xs text-gray-400";
+        sourcesText.className = "corner-bottom-text text-xs text-gray-400";
         sourcesText.textContent = "Sources";
         
         const destinationsText = document.createElement('span');
-        destinationsText.className = "corner-bottom-text text-xs text-gray-400";
+        destinationsText.className = "corner-top-text text-xs text-gray-400";
         destinationsText.textContent = "Destinations";
         
         cornerCell.appendChild(sourcesText);
