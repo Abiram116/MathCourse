@@ -96,14 +96,6 @@ input:focus, select:focus, .mq-editable-field.mq-focused {
     color: #9CA3AF;
 }
 
-.cost-input, 
-.supply-input, 
-.demand-input {
-    width: 100%;
-    min-width: 120px;
-    height: 48px;
-}
-
 /* Increase the size of matrix cells */
 #cost-matrix table td input {
     width: 100%;
