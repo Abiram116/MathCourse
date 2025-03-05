@@ -109,8 +109,10 @@ input:focus {
 .corner-cell {
   position: relative;
   background: rgba(31, 41, 55, 0.7) !important;
-  width: 250px;
-  height: 150px;
+  width: 215px !important;
+  height: 70px !important;
+  max-width: 100px !important;
+  max-height: 20px !important;
 }
 
 .corner-cell::after {
@@ -128,7 +130,7 @@ input:focus {
   position: absolute;
   top: 8px;
   right: 8px;
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   z-index: 1000;
   color: rgba(156, 163, 175, 1);
 }
@@ -137,7 +139,7 @@ input:focus {
   position: absolute;
   bottom: 8px;
   left: 8px;
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   z-index: 1000;
   color: rgba(156, 163, 175, 1);
 }
