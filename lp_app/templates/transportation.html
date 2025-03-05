@@ -215,6 +215,29 @@ tr.bg-gray-700\/50, td.bg-gray-700\/50, th.bg-gray-700\/50 {
     // GSAP Animation
     gsap.to('.container', { opacity: 1, duration: 0.8, ease: 'power2.out' });
     gsap.to('.form-group', { opacity: 1, y: 0, duration: 0.8, stagger: 0.1, ease: 'back.out' });
+    
+    // Function to create input element with common styles
+    function createInput(type, className, placeholder) {
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.className = `${className} dynamic-input bg-gray-700 text-white border border-gray-600 rounded-xl px-3 py-2 focus:ring-2 focus:ring-green-400 focus:border-transparent`;
+        input.placeholder = placeholder;
+        input.step = 'any';
+        return input;
+    }
+
+    // Store current matrix values before regenerating
+    function storeCurrentValues() {
+        return {
+            costs: Array.from(document.querySelectorAll('.cost-input')).map(input => ({
+                row: parseInt(input.dataset.row),
+                col: parseInt(input.dataset.col),
+                value: input.value || ''
+            })),
+            supply: Array.from(document.querySelectorAll('.supply-input')).map(input => input.value),
+            demand: Array.from(document.querySelectorAll('.demand-input')).map(input => input.value)
+        };
+    }
 
     // Function to enforce maxlength on input fields
     function enforceMaxLength(input) {
@@ -269,6 +292,9 @@ tr.bg-gray-700\/50, td.bg-gray-700\/50, th.bg-gray-700\/50 {
         const sources = parseInt(document.getElementById('sources').value);
         const destinations = parseInt(document.getElementById('destinations').value);
         
+         // Store current values before regenerating
+         const oldValues = storeCurrentValues();
+
         // Validate dimensions before generating table
         if (isNaN(sources) || sources < 1 || sources > 20) {
             document.getElementById('transErrorMessage').textContent = "Number of sources must be between 1 and 20";
@@ -351,6 +377,12 @@ tr.bg-gray-700\/50, td.bg-gray-700\/50, th.bg-gray-700\/50 {
                 });
                 input.dataset.row = i;
                 input.dataset.col = j;
+
+                // Restore previous value if it exists
+                const oldValue = oldValues.costs.find(v => v.row === i && v.col === j);
+                if (oldValue && oldValue.value !== '') {
+                  input.value = oldValue.value;
+                }
                 cell.appendChild(input);
                 row.appendChild(cell);
             }
@@ -364,6 +396,12 @@ tr.bg-gray-700\/50, td.bg-gray-700\/50, th.bg-gray-700\/50 {
                 enforceMaxLength(this);
                 adjustInputWidth(this);
             });
+
+            // Restore previous supply value if it exists
+            if (i < oldValues.supply.length) {
+                supplyInput.value = oldValues.supply[i];
+            }
+
             cell.appendChild(supplyInput);
             row.appendChild(cell);
             tbody.appendChild(row);
@@ -389,6 +427,12 @@ tr.bg-gray-700\/50, td.bg-gray-700\/50, th.bg-gray-700\/50 {
             demandInput.addEventListener('input', function() {
                 enforceMaxLength(this);
             });
+
+            // Restore previous demand value if it exists
+            if (j < oldValues.demand.length && oldValues.demand[j] !== '') {
+                demandInput.value = oldValues.demand[j];
+            }
+
             cellDemand.appendChild(demandInput);
             demandRow.appendChild(cellDemand);
         }
@@ -541,6 +585,8 @@ tr.bg-gray-700\/50, td.bg-gray-700\/50, th.bg-gray-700\/50 {
           }
         
           function resetTransportationToDefault() {
+
+            // Reset to default dimensions 
             document.getElementById('sources').value = 2;
             document.getElementById('destinations').value = 2;
             generateTransportationTable();
@@ -550,6 +596,21 @@ tr.bg-gray-700\/50, td.bg-gray-700\/50, th.bg-gray-700\/50 {
         
           // Initial generation of the transportation table
           generateTransportationTable();
+
+          // Event listeners for dimension inputs
+          sourcesInput.addEventListener('input', function() {
+              enforceMaxLength(this);
+              adjustInputWidth(this);
+              // Wait a small amount of time to let the value stabilize
+              setTimeout(generateTransportationTable, 300);
+          });
+          
+          destinationsInput.addEventListener('input', function() {
+              enforceMaxLength(this);
+              adjustInputWidth(this);
+              // Wait a small amount of time to let the value stabilize
+              setTimeout(generateTransportationTable, 300);
+          });
         
           // Set up event handlers
           document.getElementById('transportation-form').addEventListener('submit', async function(e) {
