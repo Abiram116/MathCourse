@@ -3,3 +3,11 @@ __pycache__/
 staticfiles/
 .env
 venv_name/
+
+# Large data files
+data/Southern Zone Latest.osm.pbf
+
+# Cache directories
+__pycache__/
+*.py[cod]
+*$py.class
