@@ -53,25 +53,50 @@ def shortest_path(request):
             # Check if the cache directory exists
             if os.environ.get('DEPLOYMENT_ENV') == 'production':
                 print("Production environment detected. Downloading OSM data.")
-                G = ox.graph_from_place("Hyderabad, Telangana, India", network_type='drive')
+                try:
+                    G = ox.graph_from_place("Hyderabad, Telangana, India", network_type='drive')
+                except Exception as e1:
+                    print(f"Error downloading OSM data: {str(e1)}")
+                    try:
+                        G = ox.graph_from_file(osm_file, network_type='drive')
+                    except Exception as e2:
+                        print(f"Error loading OSM file: {str(e2)}")
+                        return JsonResponse({'error': f'Unable to load OSM data: {str(e2)}'}, status=400)
             else:
+                # Load from JSON if available
                 if os.path.exists(cache_dir):
-                    # Load from JSON if available
                     json_files = [f for f in os.listdir(cache_dir) if f.endswith('.json')]
                     if json_files:
                         for json_file in json_files:
-                            # Load the graph from the JSON file
-                            G = ox.load_graphml(os.path.join(cache_dir, json_file))
-                            print(f"Loaded graph from JSON file: {json_file} with {len(G.nodes)} nodes and {len(G.edges)} edges")
-                            break
+                            try:
+                                G = ox.load_graphml(os.path.join(cache_dir, json_file))
+                                print(f"Loaded graph from JSON file: {json_file} with {len(G.nodes)} nodes and {len(G.edges)} edges")
+                                break
+                            except Exception as e1:
+                                print(f"Error loading JSON file: {str(e1)}")
+                                continue
                     else:
                         print("No JSON cache files found. Proceeding to download OSM data.")
-                        G = ox.graph_from_place("Hyderabad, Telangana, India", network_type='drive')
-                        print(f"Downloaded graph with {len(G.nodes)} nodes and {len(G.edges)} edges")
+                        try:
+                            G = ox.graph_from_place("Hyderabad, Telangana, India", network_type='drive')
+                        except Exception as e1:
+                            print(f"Error downloading OSM data: {str(e1)}")
+                            try:
+                                G = ox.graph_from_file(osm_file, network_type='drive')
+                            except Exception as e2:
+                                print(f"Error loading OSM file: {str(e2)}")
+                                return JsonResponse({'error': f'Unable to load OSM data: {str(e2)}'}, status=400)
                 else:
                     print("Cache directory not found. Downloading OSM data.")
-                    G = ox.graph_from_place("Hyderabad, Telangana, India", network_type='drive')
-                    print(f"Downloaded graph with {len(G.nodes)} nodes and {len(G.edges)} edges")
+                    try:
+                        G = ox.graph_from_place("Hyderabad, Telangana, India", network_type='drive')
+                    except Exception as e1:
+                        print(f"Error downloading OSM data: {str(e1)}")
+                        try:
+                            G = ox.graph_from_file(osm_file, network_type='drive')
+                        except Exception as e2:
+                            print(f"Error loading OSM file: {str(e2)}")
+                            return JsonResponse({'error': f'Unable to load OSM data: {str(e2)}'}, status=400)
         except Exception as e:
             print(f"Error processing network data: {str(e)}")
             return JsonResponse({'error': f'Unable to process street network data: {str(e)}'}, status=400)
