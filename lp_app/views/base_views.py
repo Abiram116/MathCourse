@@ -50,50 +50,26 @@ def shortest_path(request):
         osm_file = os.path.join(cache_dir, 'Southern Zone Latest.osm.pbf')
 
         try:
-            if os.path.exists(cached_graph_file):
-                print(f"Loading pre-processed network from {cached_graph_file}")
-                G = ox.load_graphml(cached_graph_file)
-                print(f"Loaded cached graph with {len(G.nodes)} nodes and {len(G.edges)} edges")
-            elif os.path.exists(osm_file):
-                print(f"Processing network from OSM file: {osm_file}")
-                buffer = 0.05  # ~5km buffer
-                north = max(start_lat, end_lat) + buffer
-                south = min(start_lat, end_lat) - buffer
-                east = max(start_lng, end_lng) + buffer
-                west = min(start_lng, end_lng) - buffer
-
-                try:
-                    G = ox.graph_from_xml(osm_file, bidirectional=True, simplify=True, 
-                                          retain_all=True, bbox=(north, south, east, west),
-                                          network_type='drive')
-                    if len(G.nodes) < 10:
-                        print("Not enough drive network nodes found, trying 'all' network type")
-                        G = ox.graph_from_xml(osm_file, bidirectional=True, simplify=True, 
-                                              retain_all=True, bbox=(north, south, east, west),
-                                              network_type='all')
-                except Exception as e:
-                    print(f"Error with specific network extraction: {e}")
-                    G = ox.graph_from_xml(osm_file, bidirectional=True, simplify=True, 
-                                          retain_all=True)
-
-                print(f"Created graph from OSM file with {len(G.nodes)} nodes and {len(G.edges)} edges")
-
-                if not os.path.exists(cache_dir):
-                    os.makedirs(cache_dir)
-
-                print(f"Saving processed graph to {cached_graph_file}")
-                ox.save_graphml(G, cached_graph_file)
+            # Check if the cache directory exists
+            if os.path.exists(cache_dir):
+                # Load from JSON if available
+                json_files = [f for f in os.listdir(cache_dir) if f.endswith('.json')]
+                if json_files:
+                    for json_file in json_files:
+                        # Load the graph from the JSON file
+                        G = ox.load_graphml(os.path.join(cache_dir, json_file))
+                        print(f"Loaded graph from JSON file: {json_file} with {len(G.nodes)} nodes and {len(G.edges)} edges")
+                        break
+                else:
+                    print("No JSON cache files found. Proceeding to download OSM data.")
+                    # Proceed to download OSM data
+                    G = ox.graph_from_place("Hyderabad, Telangana, India", network_type='drive')
+                    print(f"Downloaded graph with {len(G.nodes)} nodes and {len(G.edges)} edges")
             else:
-                print("Local OSM file not found. Trying to download from OSM API...")
+                print("Cache directory not found. Downloading OSM data.")
+                # Proceed to download OSM data
                 G = ox.graph_from_place("Hyderabad, Telangana, India", network_type='drive')
                 print(f"Downloaded graph with {len(G.nodes)} nodes and {len(G.edges)} edges")
-
-                if not os.path.exists(cache_dir):
-                    os.makedirs(cache_dir)
-
-                print(f"Saving downloaded graph to {cached_graph_file}")
-                ox.save_graphml(G, cached_graph_file)
-
         except Exception as e:
             print(f"Error processing network data: {str(e)}")
             return JsonResponse({'error': f'Unable to process street network data: {str(e)}'}, status=400)
