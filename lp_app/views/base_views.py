@@ -51,25 +51,27 @@ def shortest_path(request):
 
         try:
             # Check if the cache directory exists
-            if os.path.exists(cache_dir):
-                # Load from JSON if available
-                json_files = [f for f in os.listdir(cache_dir) if f.endswith('.json')]
-                if json_files:
-                    for json_file in json_files:
-                        # Load the graph from the JSON file
-                        G = ox.load_graphml(os.path.join(cache_dir, json_file))
-                        print(f"Loaded graph from JSON file: {json_file} with {len(G.nodes)} nodes and {len(G.edges)} edges")
-                        break
+            if os.environ.get('DEPLOYMENT_ENV') == 'production':
+                print("Production environment detected. Downloading OSM data.")
+                G = ox.graph_from_place("Hyderabad, Telangana, India", network_type='drive')
+            else:
+                if os.path.exists(cache_dir):
+                    # Load from JSON if available
+                    json_files = [f for f in os.listdir(cache_dir) if f.endswith('.json')]
+                    if json_files:
+                        for json_file in json_files:
+                            # Load the graph from the JSON file
+                            G = ox.load_graphml(os.path.join(cache_dir, json_file))
+                            print(f"Loaded graph from JSON file: {json_file} with {len(G.nodes)} nodes and {len(G.edges)} edges")
+                            break
+                    else:
+                        print("No JSON cache files found. Proceeding to download OSM data.")
+                        G = ox.graph_from_place("Hyderabad, Telangana, India", network_type='drive')
+                        print(f"Downloaded graph with {len(G.nodes)} nodes and {len(G.edges)} edges")
                 else:
-                    print("No JSON cache files found. Proceeding to download OSM data.")
-                    # Proceed to download OSM data
+                    print("Cache directory not found. Downloading OSM data.")
                     G = ox.graph_from_place("Hyderabad, Telangana, India", network_type='drive')
                     print(f"Downloaded graph with {len(G.nodes)} nodes and {len(G.edges)} edges")
-            else:
-                print("Cache directory not found. Downloading OSM data.")
-                # Proceed to download OSM data
-                G = ox.graph_from_place("Hyderabad, Telangana, India", network_type='drive')
-                print(f"Downloaded graph with {len(G.nodes)} nodes and {len(G.edges)} edges")
         except Exception as e:
             print(f"Error processing network data: {str(e)}")
             return JsonResponse({'error': f'Unable to process street network data: {str(e)}'}, status=400)
