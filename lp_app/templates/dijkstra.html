@@ -52,6 +52,15 @@
                             </div>
                         </div>
 
+                        <div class="path-info">
+                            <h3 class="text-lg font-medium text-green-400 mb-2">Path Information:</h3>
+                            <p class="text-gray-300">The paths displayed on the map are color-coded:</p>
+                            <ul class="list-disc list-inside text-gray-300">
+                                <li><span class="text-green-400 font-medium">Green:</span> Shortest Path</li>
+                                <li><span class="text-blue-400 font-medium">Blue:</span> Fastest Path</li>
+                            </ul>
+                        </div>
+
                         <div class="flex space-x-4">
                             <button id="calculate-path"
                                 class="flex-grow bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-medium py-3 px-6 rounded-xl transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-400" disabled>
@@ -72,6 +81,8 @@
                     <div class="space-y-4">
                         <div id="distance-result" class="text-lg"></div>
                         <div id="time-result" class="text-lg"></div>
+                        <div id="fastest-distance-result" class="text-lg"></div>
+                        <div id="fastest-time-result" class="text-lg"></div>
                     </div>
                 </div>
             </div>
@@ -159,6 +170,8 @@
         const resultsContainer = document.getElementById('results-container');
         const distanceResult = document.getElementById('distance-result');
         const timeResult = document.getElementById('time-result');
+        const fastestDistanceResult = document.getElementById('fastest-distance-result');
+        const fastestTimeResult = document.getElementById('fastest-time-result');
         const errorMessage = document.getElementById('error-message');
 
         map.on('click', function(e) {
@@ -212,54 +225,82 @@
                 // Call Django backend to calculate the path
                 fetch(`/api/shortest_path/?start_lat=${startPoint.lat}&start_lng=${startPoint.lng}&end_lat=${endPoint.lat}&end_lng=${endPoint.lng}`)
                     .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok');
-                        }
-                        return response.json();
+                        return response.json().then(data => {
+                            if (!response.ok) {
+                                throw new Error(data.error || 'Network response was not ok');
+                            }
+                            return data;
+                        });
                     })
                     .then(data => {
-                        // Remove previous path if exists
-                        if (pathLine) {
-                            map.removeLayer(pathLine);
+                        // Remove previous paths if exist
+                        if (pathLines && pathLines.length > 0) {
+                            pathLines.forEach(line => {
+                                if (line && map.hasLayer(line)) {
+                                    map.removeLayer(line);
+                                }
+                            });
+                            pathLines = [];
                         }
                         
-                        // Display the path returned from Django
-                        const waypoints = data.path;
+                        // Display the paths returned from Django
+                        const paths = data.paths;
+                        let bounds = null;
                         
-                        // Display the path
-                        pathLine = L.polyline(waypoints, {
-                            color: '#10b981',
-                            weight: 5,
-                            opacity: 0.7,
-                            lineJoin: 'round'
-                        }).addTo(map);
+                        paths.forEach(path => {
+                            const waypoints = path.coordinates;
+                            const pathType = path.type;
+                            
+                            // Display the path
+                            const color = pathType === 'shortest' ? '#10b981' : '#3b82f6';
+                            const newPathLine = L.polyline(waypoints, {
+                                color: color,
+                                weight: 5,
+                                opacity: 0.7,
+                                lineJoin: 'round'
+                            }).addTo(map);
+                            
+                            // Add to tracking array
+                            pathLines.push(newPathLine);
+                            
+                            // Extend bounds to include this path
+                            const pathBounds = newPathLine.getBounds();
+                            if (bounds === null) {
+                                bounds = pathBounds;
+                            } else {
+                                bounds.extend(pathBounds);
+                            }
+                            
+                            // Store as primary path line (for backwards compatibility)
+                            pathLine = newPathLine;
+                        });
                         
-                        // Calculate distance and time
-                        const distance = calculateDistance(waypoints);
-                        const time = calculateTime(distance);
+                        // Fit map to show all paths
+                        if (bounds) {
+                            map.fitBounds(bounds, { padding: [50, 50] });
+                        }
+                        
+                        // Calculate distances and times
+                        const distances = {};
+                        const times = {};
+                        paths.forEach(path => {
+                            const pathType = path.type;
+                            const waypoints = path.coordinates;
+                            distances[pathType] = calculateDistance(waypoints);
+                            times[pathType] = calculateTime(distances[pathType]);
+                        });
                         
                         // Show results
-                        distanceResult.textContent = `Distance: ${distance.toFixed(2)} km`;
-                        timeResult.textContent = `Estimated Time: ${time} minutes`;
+                        distanceResult.textContent = `Shortest Path Distance: ${distances.shortest.toFixed(2)} km`;
+                        timeResult.textContent = `Shortest Path Estimated Time: ${times.shortest} minutes`;
+                        fastestDistanceResult.textContent = `Fastest Path Distance: ${distances.fastest.toFixed(2)} km`;
+                        fastestTimeResult.textContent = `Fastest Path Estimated Time: ${times.fastest} minutes`;
                         resultsContainer.classList.remove('hidden');
-                        
-                        // Animate results
-                        gsap.fromTo(resultsContainer,
-                            { opacity: 0, y: 20 },
-                            { opacity: 1, y: 0, duration: 0.5 }
-                        );
-                        
-                        // Fit map to show the complete path
-                        map.fitBounds(pathLine.getBounds(), { padding: [50, 50] });
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        errorMessage.textContent = 'Error calculating path. Please try different points.';
+                        errorMessage.textContent = error.message || 'Error calculating path. Please try different points.';
                         errorMessage.classList.remove('hidden');
-                        gsap.fromTo(errorMessage,
-                            { opacity: 0, y: -20 },
-                            { opacity: 1, y: 0, duration: 0.4 }
-                        );
                     })
                     .finally(() => {
                         calculateBtn.disabled = false;
@@ -271,11 +312,20 @@
             }
         });
 
+        // Create an array to track all path lines
+        let pathLines = [];
+        
         resetBtn.addEventListener('click', function() {
-            // Clear map markers and path
+            // Clear map markers
             if (startMarker) map.removeLayer(startMarker);
             if (endMarker) map.removeLayer(endMarker);
-            if (pathLine) map.removeLayer(pathLine);
+            
+            // Clear all path lines
+            pathLines.forEach(line => {
+                if (line && map.hasLayer(line)) {
+                    map.removeLayer(line);
+                }
+            });
             
             // Reset variables
             startPoint = null;
@@ -283,6 +333,7 @@
             startMarker = null;
             endMarker = null;
             pathLine = null;
+            pathLines = [];
             
             // Hide info panels
             pointInfo.classList.add('hidden');
@@ -331,20 +382,24 @@
         }
 
         async function calculateShortestPath(start, end) {
-            const url = `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`;
+            // Use our Django backend implementation for Dijkstra's algorithm
+            // This will follow the actual road network using OSM data
+            const url = `/api/shortest_path/?start_lat=${start.lat}&start_lng=${start.lng}&end_lat=${end.lat}&end_lng=${end.lng}`;
             
             try {
                 const response = await fetch(url);
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to calculate path');
+                }
+                
                 const data = await response.json();
+                console.log("Django API Response:", data); // Debugging line
                 
-                console.log("OSRM API Response:", data); // Debugging line
-                
-                if (data.routes && data.routes.length > 0) {
-                    const route = data.routes[0];
-                    const coordinates = route.geometry.coordinates.map(coord => ({ lat: coord[1], lng: coord[0] }));
-                    
+                if (data.path && data.path.length > 0) {
+                    const coordinates = data.path;
                     console.log("Route Coordinates:", coordinates); // Debugging line
-                    
                     return coordinates;
                 } else {
                     throw new Error("No route found");
