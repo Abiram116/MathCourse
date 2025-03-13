@@ -116,6 +116,20 @@
     background: rgba(255, 255, 255, 0.2);
 }
 
+
+/* Add to your CSS */
+.applications-section {
+    margin-top: 4rem;
+    padding-top: 2rem;
+}
+
+.applications-section h2 {
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+
+
 /* ==========================================================================
    Slider Components
    ========================================================================== */
