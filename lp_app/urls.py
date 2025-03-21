@@ -7,6 +7,8 @@ from .views import (
     solve_simplex_lp,
     transportation_solver_view,
     solve_transportation,
+    integer_solver_view,
+    solve_integer,
     fractional_solver_view,
     solve_fractional
 )
@@ -24,6 +26,9 @@ urlpatterns = [
     # Transportation problem paths
     path('transportation/', transportation_solver_view, name='transportation'),
     path('transportation/solve/', solve_transportation, name='solve_transportation'),
+    # Integer programming paths
+    path('integer/', integer_solver_view, name='integer'),
+    path('integer/solve/', solve_integer, name='solve_integer'),
     # Fractional programming paths
     path('fractional/', fractional_solver_view, name='fractional'),
     path('fractional/solve/', solve_fractional, name='solve_fractional'),

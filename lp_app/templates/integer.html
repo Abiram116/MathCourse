@@ -1,0 +1,398 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integer Programming Solver</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.js"></script>
+    <link href="{% static 'lp_app/css/simplex.css' %}" rel="stylesheet">
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-gray-800 text-gray-100 min-h-screen overflow-x-hidden flex items-center">
+    <a href="/" class="back-button" title="Back to Home">
+        <svg class="back-arrow" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+        </svg>
+    </a>
+
+    <div class="container mx-auto px-4 py-12 max-w-7xl" id="mainContainer">
+        <h1 class="text-5xl font-bold text-center mb-16 title-gradient">
+            Integer Programming Solver
+        </h1>
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
+            <div class="xl:col-span-6 xl:col-start-4">
+                <div class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-700/50">
+                    <form id="ip-form" class="space-y-6">
+                        <input type="hidden" name="csrfmiddlewaretoken" id="csrf_token">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label class="block text-sm font-medium mb-2 text-green-400" for="optimization_type">
+                                Optimization Type
+                            </label>
+                            <select id="optimization_type" name="optimization_type" required
+                                class="w-full bg-gray-700 text-white border border-gray-600 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-400 focus:border-transparent transition-colors duration-200">
+                                <option value="minimize">Minimize</option>
+                                <option value="maximize">Maximize</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="block text-sm font-medium mb-2 text-green-400" for="variables">
+                                Number of Variables
+                            </label>
+                            <input type="number" id="variables" name="variables" min="1" value="2"
+                                class="w-full bg-gray-700 text-white border border-gray-600 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-400 focus:border-transparent transition-colors duration-200" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="block text-sm font-medium mb-2 text-green-400">
+                                Objective Function
+                            </label>
+                            <div id="objective-math"></div>
+                            <input type="hidden" id="objective" name="objective">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="block text-sm font-medium mb-2 text-green-400">
+                                Constraints
+                            </label>
+                            <div id="constraints-math"></div>
+                            <input type="hidden" id="constraints" name="constraints">
+                            <p class="mt-2 text-sm text-gray-400">Separate constraints with semicolons (;)</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="block text-sm font-medium mb-2 text-green-400" for="integer_vars">
+                                Integer Variables
+                            </label>
+                            <select id="integer_vars" name="integer_vars" required
+                                class="w-full bg-gray-700 text-white border border-gray-600 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-400 focus:border-transparent transition-colors duration-200">
+                                <option value="all">All Variables</option>
+                                <option value="custom">Select Variables</option>
+                            </select>
+                            <div id="custom-vars-container" class="mt-3 hidden">
+                                <input type="text" id="custom_integer_vars" name="custom_integer_vars" 
+                                    placeholder="e.g., a, b (comma separated)"
+                                    class="w-full bg-gray-700 text-white border border-gray-600 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-400 focus:border-transparent transition-colors duration-200">
+                            </div>
+                        </div>
+
+                        <div class="flex space-x-4">
+                            <button type="submit" id="solveBtn"
+                                class="flex-grow bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-medium py-3 px-6 rounded-xl transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-400">
+                                Solve
+                            </button>
+                            <button type="button" id="clearBtn"
+                                class="clear-button px-4 py-3 rounded-xl transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                Clear
+                            </button>
+                        </div>
+                    </form>
+                    <div id="error-message" class="text-red-400 mt-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/50 hidden"></div>
+                </div>
+            </div>
+
+            <div class="xl:col-span-6 xl:col-start-4">
+                <div id="solution-container" class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-700/50 hidden">
+                    <h2 class="text-2xl font-semibold mb-6 text-green-400">Solution</h2>
+                    <div class="space-y-4">
+                        <div id="solution" class="text-lg"></div>
+                        <div id="optimal-value" class="text-lg mt-4"></div>
+                        <div id="iterations" class="text-lg mt-4 text-gray-300"></div>
+                        <div id="status" class="text-lg mt-4 text-gray-300"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set initial properties for back button
+            gsap.set('.back-button', {
+                opacity: 0,
+                x: -50
+            });
+        
+            // Create a timeline for better control
+            const tl = gsap.timeline({
+                defaults: {
+                    ease: 'power2.out',
+                    duration: 0.8
+                }
+            });
+        
+            // Animation sequence
+            tl.to('#mainContainer', {
+                opacity: 1,
+                duration: 1
+            })
+            
+            // Title animation
+            .from('h1', {
+                y: -50,
+                opacity: 0,
+                duration: 0.8
+            }, "-=0.5")
+        
+            // Back button animation
+            .to('.back-button', {
+                x: 0,
+                opacity: 1,
+                duration: 0.6
+            }, "-=0.6")
+        
+            // Form groups staggered animation
+            .to('.form-group', {
+                opacity: 1,
+                y: 0,
+                stagger: 0.2,
+                duration: 0.8,
+                ease: 'back.out'
+            }, "-=0.4")
+        
+            // Buttons animation
+            .to('#solveBtn, #clearBtn', {
+                opacity: 1,
+                y: 0,
+                duration: 0.8,
+                stagger: 0.1,
+                ease: 'back.out'
+            }, "-=0.2");
+        });
+
+        var MQ = MathQuill.getInterface(2);
+
+        // Initialize form elements
+        const form = document.getElementById('ip-form');
+        const clearBtn = document.getElementById('clearBtn');
+        const errorMessage = document.getElementById('error-message');
+        const solutionContainer = document.getElementById('solution-container');
+        const optimizationType = document.getElementById('optimization_type');
+        const variablesInput = document.getElementById('variables');
+        const integerVarsSelect = document.getElementById('integer_vars');
+        const customVarsContainer = document.getElementById('custom-vars-container');
+        const customIntegerVars = document.getElementById('custom_integer_vars');
+
+        // Show/hide custom integer variables input based on selection
+        integerVarsSelect.addEventListener('change', function() {
+            if (this.value === 'custom') {
+                customVarsContainer.classList.remove('hidden');
+            } else {
+                customVarsContainer.classList.add('hidden');
+            }
+        });
+
+        // Function to show error messages
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.remove('hidden');
+            solutionContainer.classList.add('hidden');
+        }
+
+        // Function to format constraints for backend
+        function formatConstraints(latex) {
+            // Replace MathQuill's \leq and \geq with <= and >= respectively
+            let formatted = latex
+                .replace(/\\leq/g, '<=')
+                .replace(/\\geq/g, '>=')
+                .replace(/\\le/g, '<=')
+                .replace(/\\ge/g, '>=')
+                .replace(/=/g, '=');
+            
+            // Split constraints by semicolon and trim whitespace
+            return formatted.split(';')
+                .map(constraint => constraint.trim())
+                .filter(constraint => constraint.length > 0)
+                .join(';');
+        }
+
+        // Function to validate constraint format
+        function validateConstraints(constraints) {
+            const constraintsList = constraints.split(';')
+                .map(c => c.trim())
+                .filter(c => c.length > 0);
+
+            if (constraintsList.length === 0) {
+                throw new Error('Please enter at least one constraint');
+            }
+
+            for (let constraint of constraintsList) {
+                if (!constraint.includes('<=') && !constraint.includes('>=') && !constraint.includes('=')) {
+                    throw new Error('Each constraint must include <=, >=, or =');
+                }
+            }
+
+            return constraintsList;
+        }
+
+        // Function to format solution object
+        function formatSolution(solutionObj) {
+            return Object.entries(solutionObj)
+                .map(([variable, value]) => `${variable} = ${Number.isInteger(value) ? value : value.toFixed(2)}`)
+                .join(', ');
+        }
+
+        // Function to update solution display
+        function updateSolutionDisplay(result) {
+            const solutionDiv = document.getElementById('solution');
+            const optimalValueDiv = document.getElementById('optimal-value');
+            const iterationsDiv = document.getElementById('iterations');
+            const statusDiv = document.getElementById('status');
+    
+            // Format the solution object
+            const formattedSolution = formatSolution(result.solution);
+            
+            solutionDiv.innerHTML = `<strong>Solution:</strong> ${formattedSolution}`;
+            optimalValueDiv.innerHTML = `<strong>Optimal Value:</strong> ${Number.isInteger(result.optimal_value) ? result.optimal_value : result.optimal_value.toFixed(2)}`;
+            iterationsDiv.innerHTML = `<strong>Iterations:</strong> ${result.iterations}`;
+            statusDiv.innerHTML = `<strong>Status:</strong> ${result.status}`;
+    
+            solutionContainer.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+        }
+
+        // Get CSRF token from cookies
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set CSRF token
+            const csrfToken = getCookie('csrftoken');
+            document.getElementById('csrf_token').value = csrfToken;
+
+            // Initialize MathQuill fields
+            const objectiveMathField = MQ.MathField(document.getElementById('objective-math'), {
+                handlers: {
+                    edit: function() {
+                        document.getElementById('objective').value = objectiveMathField.latex();
+                        updatePlaceholderVisibility(objectiveMathField);
+                    }
+                },
+                spaceBehavesLikeTab: true,
+                restrictMismatchedBrackets: true
+            });
+
+            const constraintsMathField = MQ.MathField(document.getElementById('constraints-math'), {
+                handlers: {
+                    edit: function() {
+                        const latex = constraintsMathField.latex();
+                        document.getElementById('constraints').value = latex;
+                        updatePlaceholderVisibility(constraintsMathField);
+                    },
+                    enter: function() {
+                        constraintsMathField.typedText(';');
+                        return false;
+                    }
+                }
+            });
+
+            // Clear button handler
+            clearBtn.addEventListener('click', function() {
+                objectiveMathField.latex('');
+                constraintsMathField.latex('');
+                errorMessage.classList.add('hidden');
+                solutionContainer.classList.add('hidden');
+                updatePlaceholderVisibility(objectiveMathField);
+                updatePlaceholderVisibility(constraintsMathField);
+            });
+
+            // Form submission handler
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const submitBtn = this.querySelector('button[type="submit"]');
+                
+                try {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span class="inline-block animate-spin mr-2">↻</span> Solving...';
+                    
+                    const objective = document.getElementById('objective').value.trim();
+                    const constraints = formatConstraints(document.getElementById('constraints').value.trim());
+                    let integerVars = integerVarsSelect.value;
+                    
+                    if (integerVars === 'custom') {
+                        integerVars = customIntegerVars.value.trim();
+                        if (!integerVars) {
+                            throw new Error('Please specify which variables should be integers');
+                        }
+                    }
+
+                    // Validate inputs
+                    if (!objective) {
+                        throw new Error('Please enter an objective function');
+                    }
+
+                    // Validate constraints format
+                    const constraintsList = validateConstraints(constraints);
+
+                    const formData = {
+                        optimization_type: optimizationType.value,
+                        variables: variablesInput.value,
+                        objective: objective,
+                        constraints: constraintsList.join(';'),
+                        integer_vars: integerVars
+                    };
+
+                    const response = await fetch('/integer/solve/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken,
+                        },
+                        body: JSON.stringify(formData)
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Server error occurred');
+                    }
+
+                    const result = await response.json();
+                    if (result.error) {
+                        throw new Error(result.error);
+                    }
+
+                    updateSolutionDisplay(result);
+
+                } catch (error) {
+                    showError(error.message);
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = 'Solve';
+                }
+            });
+
+            // Set placeholders with proper symbols
+            objectiveMathField.el().setAttribute('data-placeholder', 'e.g., 2a + 3b');
+            constraintsMathField.el().setAttribute('data-placeholder', 'e.g., 2a + 3b ≤ 10; 3a + 4b ≥ 20; a = 2');
+
+            function updatePlaceholderVisibility(mathField) {
+                const isEmpty = mathField.latex().trim() === '';
+                const el = mathField.el();
+                el.classList.toggle('mq-empty', isEmpty);
+                el.classList.toggle('has-content', !isEmpty);
+            }
+
+            // Initialize placeholder visibility
+            updatePlaceholderVisibility(objectiveMathField);
+            updatePlaceholderVisibility(constraintsMathField);
+        });
+    </script>
+</body>
+</html>
