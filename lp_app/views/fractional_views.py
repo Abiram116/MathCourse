@@ -13,17 +13,13 @@ def fractional_solver_view(request):
     return render(request, 'fractional.html')
 
 def get_variable_mapping(num_vars):
-    """Create a mapping of sequential x,y,z... variables to indices."""
+    """Create a mapping of sequential a,b,c... variables to indices."""
     variables = []
     for i in range(num_vars):
-        if i == 0:
-            variables.append('x')
-        elif i == 1:
-            variables.append('y')
-        elif i == 2:
-            variables.append('z')
+        if i < 26:  # For the first 26 variables, use a through z
+            variables.append(chr(97 + i))  # ASCII: 97 = 'a', 98 = 'b', etc.
         else:
-            variables.append(f'x{i+1}')
+            variables.append(f'a{i-25}')  # After z, use a1, a2, etc.
     
     print(f"Variable mapping for {num_vars} variables: {variables}")
     return {var: idx for idx, var in enumerate(variables)}
@@ -60,9 +56,9 @@ def parse_expression(expr, num_vars):
             print(f"Found variable: {var}")
             if var not in var_mapping:
                 # Try to handle the case when variables are swapped
-                if var in ['x', 'y'] and num_vars >= 2:
-                    print(f"Variable {var} is standard (x,y) but not in mapping. Using fixed mapping x=0, y=1")
-                    var_idx = 0 if var == 'x' else 1
+                if var in ['a', 'b'] and num_vars >= 2:
+                    print(f"Variable {var} is standard (a,b) but not in mapping. Using fixed mapping a=0, b=1")
+                    var_idx = 0 if var == 'a' else 1
                 else:
                     raise ValueError(f"Variable {var} exceeds the specified number of variables ({num_vars})")
             else:
@@ -330,11 +326,11 @@ def solve_fractional(request):
                 optimal_value = float('inf') if maximize else float('-inf')
             
             # Create solution with variable names
-            var_names = list(string.ascii_lowercase[:num_vars])
+            var_names = list(get_variable_mapping(num_vars).keys())
             solution = {var: float(val) for var, val in zip(var_names, x)}
             
             # Generate original problem information
-            var_names = list(string.ascii_lowercase[:num_vars])
+            var_names = list(get_variable_mapping(num_vars).keys())
             
             # Create original form strings
             orig_objective = "minimize" if not maximize else "maximize"

@@ -196,8 +196,8 @@
             }
 
             for (let constraint of constraintsList) {
-                if (!constraint.includes('<=') && !constraint.includes('>=')) {
-                    throw new Error('Each constraint must include <= or >=');
+                if (!constraint.includes('<=') && !constraint.includes('>=') && !constraint.includes('=')) {
+                    throw new Error('Each constraint must include <=, >= or =');
                 }
             }
 

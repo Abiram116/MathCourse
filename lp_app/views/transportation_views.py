@@ -35,11 +35,35 @@ def solve_transportation(request):
                 'error': "Supply/demand dimensions don't match cost matrix dimensions"
             }, status=400)
             
-        # Validate balanced problem
-        if not np.isclose(sum(supply), sum(demand)):
-            return JsonResponse({
-                'error': "Total supply must equal total demand"
-            }, status=400)
+        # Check if problem is balanced or unbalanced
+        total_supply = sum(supply)
+        total_demand = sum(demand)
+        is_balanced = np.isclose(total_supply, total_demand)
+        
+        # Handle unbalanced problem by adding dummy source/destination
+        dummy_added = False
+        dummy_type = None
+        original_m, original_n = m, n
+        
+        if not is_balanced:
+            if total_supply > total_demand:
+                # Add dummy destination (column) with zero costs
+                dummy_demand = total_supply - total_demand
+                dummy_costs = np.zeros((m, 1))
+                cost_matrix = np.hstack((cost_matrix, dummy_costs))
+                demand = np.append(demand, dummy_demand)
+                n += 1  # Increase number of destinations
+                dummy_added = True
+                dummy_type = "destination"
+            else:  # total_demand > total_supply
+                # Add dummy source (row) with zero costs
+                dummy_supply = total_demand - total_supply
+                dummy_costs = np.zeros((1, n))
+                cost_matrix = np.vstack((cost_matrix, dummy_costs))
+                supply = np.append(supply, dummy_supply)
+                m += 1  # Increase number of sources
+                dummy_added = True
+                dummy_type = "source"
 
         # Prepare linear programming constraints
         c = cost_matrix.flatten()  # Objective function coefficients
@@ -82,15 +106,37 @@ def solve_transportation(request):
         allocation_matrix = result.x.reshape(m, n).tolist()
         optimal_cost = float(result.fun)
         
-        # Return solution
-        return JsonResponse({
+        # Prepare response with unbalanced problem info if applicable
+        response = {
             'solution': {
                 'allocation': allocation_matrix,
                 'total_cost': optimal_cost,
                 'iterations': result.nit,
                 'status': 'Optimal solution found'
             }
-        })
+        }
+        
+        # Add information about unbalanced problem handling
+        if dummy_added:
+            if dummy_type == "destination":
+                response['solution']['unbalanced_info'] = {
+                    'type': 'excess_supply',
+                    'amount': float(total_supply - total_demand),
+                    'dummy_index': original_n  # Index of the dummy destination
+                }
+                # Original allocation matrix (without dummy column)
+                response['solution']['original_allocation'] = [row[:-1] for row in allocation_matrix]
+            else:  # dummy_type == "source"
+                response['solution']['unbalanced_info'] = {
+                    'type': 'excess_demand',
+                    'amount': float(total_demand - total_supply),
+                    'dummy_index': original_m  # Index of the dummy source
+                }
+                # Original allocation matrix (without dummy row)
+                response['solution']['original_allocation'] = allocation_matrix[:-1]
+        
+        # Return solution
+        return JsonResponse(response)
         
     except json.JSONDecodeError:
         return JsonResponse({
