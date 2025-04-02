@@ -493,7 +493,7 @@ tr.bg-gray-700\/50, td.bg-gray-700\/50, th.bg-gray-700\/50 {
             totalDemand += demandValue;
           });
           if (Math.abs(totalSupply - totalDemand) > 0.0001) {
-            throw new Error(`Total supply (${totalSupply}) must equal total demand (${totalDemand})`);
+            console.log(`Note: Unbalanced problem detected - Supply: ${totalSupply}, Demand: ${totalDemand}`);
           }
         }
       
@@ -515,8 +515,35 @@ tr.bg-gray-700\/50, td.bg-gray-700\/50, th.bg-gray-700\/50 {
         function displayTransportationSolution(solution) {
             const container = document.getElementById('transportation-solution-container');
             const solutionDiv = document.getElementById('transSolution');
+            
+            // Check if problem was unbalanced
+            const isUnbalanced = solution.solution.hasOwnProperty('unbalanced_info');
+            
+            // Determine which allocation matrix to display
+            const allocationMatrix = isUnbalanced ? solution.solution.original_allocation : solution.solution.allocation;
+            
+            // Create unbalanced info HTML if applicable
+            let unbalancedInfoHTML = '';
+            if (isUnbalanced) {
+                const info = solution.solution.unbalanced_info;
+                unbalancedInfoHTML = `
+                <div class="bg-yellow-800/30 backdrop-blur-lg border border-yellow-700/50 rounded-lg p-4 text-gray-100 mb-4">
+                    <span class="text-yellow-400 font-semibold">Unbalanced Problem Detected:</span>
+                    <div class="mt-2">
+                        <p>This is an unbalanced transportation problem with 
+                        ${info.type === 'excess_supply' ? 'excess supply' : 'excess demand'} 
+                        of ${info.amount.toFixed(2)} units.</p>
+                        <p class="mt-1">A dummy ${info.type === 'excess_supply' ? 'destination' : 'source'} 
+                        was added to balance the problem.</p>
+                        <p class="mt-1">The solution shown excludes the dummy allocations.</p>
+                    </div>
+                </div>`;
+            }
+            
             solutionDiv.innerHTML = `
               <div class="space-y-4">
+                ${unbalancedInfoHTML}
+                
                 <!-- Status Card -->
                 <div class="bg-gray-800/30 backdrop-blur-lg border border-gray-700/50 rounded-lg p-4 text-gray-100">
                   <span class="text-green-400 font-semibold">Status:</span>
@@ -544,14 +571,14 @@ tr.bg-gray-700\/50, td.bg-gray-700\/50, th.bg-gray-700\/50 {
                         <tr>
                           <th class="border border-gray-600 p-2 text-gray-400 w-16">Source</th>
                           ${
-                            solution.solution.allocation[0]
+                            allocationMatrix[0]
                               .map((_, j) => `<th class="border border-gray-600 p-2 text-gray-400 w-16">D${j + 1}</th>`)
                               .join('')
                           }
                         </tr>
                       </thead>
                       <tbody>
-                        ${solution.solution.allocation
+                        ${allocationMatrix
                           .map(
                             (row, i) => `
                               <tr>
