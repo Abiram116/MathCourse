@@ -106,13 +106,22 @@ def solve_transportation(request):
         allocation_matrix = result.x.reshape(m, n).tolist()
         optimal_cost = float(result.fun)
         
+        # Check for degeneracy
+        # A transportation problem is degenerate if the number of positive allocations is less than m+n-1
+        positive_allocations = sum(1 for i in range(m) for j in range(n) if result.x[i*n + j] > 1e-10)
+        is_degenerate = positive_allocations < (m + n - 1)
+        
+        
         # Prepare response with unbalanced problem info if applicable
         response = {
             'solution': {
                 'allocation': allocation_matrix,
                 'total_cost': optimal_cost,
                 'iterations': result.nit,
-                'status': 'Optimal solution found'
+                'status': 'Optimal solution found',
+                'is_degenerate': is_degenerate,
+                'allocated_cells': positive_allocations,
+                'required_cells': m + n - 1
             }
         }
         

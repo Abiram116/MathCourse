@@ -519,6 +519,9 @@ tr.bg-gray-700\/50, td.bg-gray-700\/50, th.bg-gray-700\/50 {
             // Check if problem was unbalanced
             const isUnbalanced = solution.solution.hasOwnProperty('unbalanced_info');
             
+            // Check if problem is degenerate
+            const isDegenerate = solution.solution.is_degenerate;
+            
             // Determine which allocation matrix to display
             const allocationMatrix = isUnbalanced ? solution.solution.original_allocation : solution.solution.allocation;
             
@@ -540,9 +543,24 @@ tr.bg-gray-700\/50, td.bg-gray-700\/50, th.bg-gray-700\/50 {
                 </div>`;
             }
             
+            // Create degenerate info HTML if applicable
+            let degenerateInfoHTML = '';
+            if (isDegenerate) {
+                degenerateInfoHTML = `
+                <div class="bg-purple-800/30 backdrop-blur-lg border border-purple-700/50 rounded-lg p-4 text-gray-100 mb-4">
+                    <span class="text-purple-400 font-semibold">Degenerate Problem Detected:</span>
+                    <div class="mt-2">
+                        <p>This is a degenerate transportation problem. The condition for degeneracy is:</p>
+                        <p class="mt-1 font-mono text-center">Number of allocated cells (${solution.solution.allocated_cells}) < m + n - 1 (${solution.solution.required_cells})</p>
+                        <p class="mt-1">In a degenerate problem, the number of basic variables (positive allocations) is less than m+n-1, where m is the number of sources and n is the number of destinations.</p>
+                    </div>
+                </div>`;
+            }
+            
             solutionDiv.innerHTML = `
               <div class="space-y-4">
                 ${unbalancedInfoHTML}
+                ${degenerateInfoHTML}
                 
                 <!-- Status Card -->
                 <div class="bg-gray-800/30 backdrop-blur-lg border border-gray-700/50 rounded-lg p-4 text-gray-100">

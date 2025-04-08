@@ -154,17 +154,33 @@
             </div>
         </div>
 
-        <!-- Navigation Arrows -->
-        <div class="nav-arrow left-6" id="prevSlide">
-            <svg viewBox="0 0 24 24" fill="none" class="w-full h-full">
+        <!-- Navigation Arrows (New Implementation) -->
+        <button class="arrow-btn left-6" id="prevSlide" style="position: fixed; top: 50%; transform: translateY(-50%); z-index: 50; background: transparent; border: none; outline: none; cursor: pointer; width: clamp(40px, 8vw, 80px); height: clamp(40px, 8vw, 80px);">
+            <svg viewBox="0 0 24 24" fill="none" style="width: 100%; height: 100%;">
                 <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-        </div>
-        <div class="nav-arrow right-6" id="nextSlide">
-            <svg viewBox="0 0 24 24" fill="none" class="w-full h-full">
+        </button>
+        <button class="arrow-btn right-6" id="nextSlide" style="position: fixed; top: 50%; transform: translateY(-50%); z-index: 50; background: transparent; border: none; outline: none; cursor: pointer; width: clamp(40px, 8vw, 80px); height: clamp(40px, 8vw, 80px);">
+            <svg viewBox="0 0 24 24" fill="none" style="width: 100%; height: 100%;">
                 <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-        </div>
+        </button>
+        
+        <style>
+            .arrow-btn {
+                transition: transform 0.3s ease;
+            }
+            .arrow-btn svg {
+                color: rgba(255, 255, 255, 0.6);
+                transition: color 0.3s ease;
+            }
+            .arrow-btn:hover {
+                transform: translateY(-50%) scale(1.2) !important;
+            }
+            .arrow-btn:hover svg {
+                color: rgba(255, 255, 255, 1) !important;
+            }
+        </style>
     </div>
 
     <!-- JavaScript -->
