@@ -60,6 +60,13 @@
                     </a>
                 </div>
 
+                <!-- Applications Section -->
+                <div class="applications-section mt-16 pt-8 border-t border-gray-700">
+                    <h2 class="text-lg font-normal tracking-wider text-gray-400 mb-6">APPLICATION</h2>
+                    <a href="/dijkstra" class="block text-4xl method-title hover:opacity-70 transition-opacity">
+                        DIJKSTRA'S ALGORITHM
+                    </a>
+                </div>
             </div>
         </div>
     </nav>

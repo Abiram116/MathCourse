@@ -1,0 +1,511 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nonlinear Programming Solver</title>
+    <link href="{% static 'lp_app/css/nonlinear.css' %}" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.css">
+    <style>
+        /* Style the MathQuill field */
+        .mq-editable-field {
+            border: 1px solid #4a5568; /* gray-600 */
+            padding: 0.75rem 1rem; /* py-3 px-4 */
+            border-radius: 0.75rem; /* rounded-xl */
+            background-color: #2d3748; /* gray-700 */
+            color: #f7fafc; /* gray-100 */
+            width: 100%;
+            min-height: 46px; /* Ensure minimum height */
+            transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            position: relative; /* Needed for placeholder */
+        }
+        .mq-editable-field.mq-empty::before {
+            content: attr(data-placeholder);
+            position: absolute;
+            left: 1rem; /* Match padding */
+            top: 0.75rem; /* Match padding */
+            color: #718096; /* gray-500 */
+            pointer-events: none; /* Allow clicking through */
+            z-index: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: calc(100% - 2rem); /* Prevent overflow */
+        }
+        /* Hide placeholder when field has content or is focused */
+        .mq-editable-field:not(.mq-empty)::before,
+        .mq-editable-field.mq-focused::before {
+            /* display: none; */ /* Using opacity for smoother transition if desired */
+            opacity: 0;
+        }
+        /* Ensure cursor is visible */
+        .mq-cursor {
+            border-left: 1px solid #f7fafc; /* white */
+            margin-right: -1px;
+        }
+        .mq-editable-field.mq-focused {
+            outline: none;
+            border-color: #48bb78; /* green-400 */
+            box-shadow: 0 0 0 2px rgba(72, 187, 120, 0.5); /* focus:ring-2 focus:ring-green-400 */
+        }
+        
+        /* Hide original inputs */
+        #objective, #constraints {
+            display: none;
+        }
+        
+        /* Back Button Styles */
+        .back-button {
+            position: absolute;
+            top: 1.5rem;
+            left: 1.5rem;
+            background-color: rgba(45, 55, 72, 0.5); /* gray-700 with transparency */
+            backdrop-filter: blur(5px);
+            border-radius: 50%;
+            padding: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+            z-index: 10;
+            border: 1px solid rgba(74, 85, 104, 0.5); /* gray-600/50 */
+        }
+        .back-button:hover {
+            background-color: rgba(74, 85, 104, 0.7); /* gray-600 with transparency */
+            transform: scale(1.1);
+        }
+        .back-arrow {
+            width: 1.5rem; /* 24px */
+            height: 1.5rem; /* 24px */
+            fill: #a0aec0; /* gray-400 */
+            transition: fill 0.3s ease;
+        }
+        .back-button:hover .back-arrow {
+            fill: #f7fafc; /* gray-100 */
+        }
+        /* Title Gradient */
+        .title-gradient {
+            background: linear-gradient(to right, #4ade80, #3b82f6); /* green-400 to blue-500 */
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        /* Clear Button */
+        .clear-button {
+            background-color: #4a5568; /* gray-600 */
+            color: #e2e8f0; /* gray-300 */
+            border: 1px solid #718096; /* gray-500 */
+        }
+        .clear-button:hover {
+            background-color: #718096; /* gray-500 */
+            color: #f7fafc; /* gray-100 */
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-gray-800 text-gray-100 min-h-screen overflow-auto flex items-center">
+    <div class="container mx-auto px-4 py-6 max-w-7xl" id="mainContainer">
+        <h1 class="text-4xl font-bold text-center mb-8 title-gradient">
+            Nonlinear Programming Solver
+        </h1>
+
+        <a href="/" class="back-button" title="Back to Home">
+            <svg class="back-arrow" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+            </svg>
+        </a>
+
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+            <div class="xl:col-span-4">
+                <div class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-6 border border-gray-700/50">
+                    <form id="nlp-form" class="space-y-4">
+                        {% csrf_token %}
+
+                        <div class="bg-gray-700/50 p-3 rounded-lg mb-4 text-xs text-gray-300">
+                            <p class="font-medium text-green-400 mb-1">Input Tips:</p>
+                            <ul class="list-disc pl-5 space-y-1">
+                                <li>Use variables like <strong>a, b, c</strong> instead of x, y, z</li>
+                                <li>Use <strong>^</strong> for exponents (e.g., a^2, b^3)</li>
+                                <li>Use <strong>*</strong> for multiplication (e.g., 2*a, a*b)</li>
+                                <li>Type function names like <strong>sin</strong>, <strong>cos</strong>, <strong>log</strong></li>
+                                <li>Use <strong>&lt;=</strong> for ≤ and <strong>&gt;=</strong> for ≥</li>
+                                <li>Separate constraints with semicolons (<strong>;</strong>)</li>
+                            </ul>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="block text-sm font-medium mb-2 text-green-400" for="problem_type">
+                                Problem Type
+                            </label>
+                            <select id="problem_type" name="problem_type" required
+                                class="w-full bg-gray-700 text-white border border-gray-600 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-400 focus:border-transparent transition-colors duration-200">
+                                <option value="quadratic">Quadratic Programming</option>
+                                <option value="nonlinear">General Nonlinear (KKT)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="block text-sm font-medium mb-2 text-green-400" for="min_max">
+                                Optimization Type
+                            </label>
+                            <select id="min_max" name="min_max" required
+                                class="w-full bg-gray-700 text-white border border-gray-600 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-400 focus:border-transparent transition-colors duration-200">
+                                <option value="min">Minimize</option>
+                                <option value="max">Maximize</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="block text-sm font-medium mb-2 text-green-400">
+                                Objective Function
+                            </label>
+                            <span id="objective-math" class="mq-editable-field block"></span>
+                            <input type="hidden" id="objective" name="objective">
+                            <p class="mt-1 text-xs text-gray-400">
+                                <span id="quadratic-example">Example: 2a^2 + 3b^2 - 4a - 6b</span>
+                                <span id="nonlinear-example" class="hidden">Example: sin(a) + b^3 - 2a*b</span>
+                            </p>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="block text-sm font-medium mb-2 text-green-400">
+                                Constraints
+                            </label>
+                            <span id="constraints-math" class="mq-editable-field block"></span>
+                            <input type="hidden" id="constraints" name="constraints">
+                            <p class="mt-1 text-xs text-gray-400">Enter constraints separated by semicolons (;)</p>
+                            <p class="mt-1 text-xs text-gray-400">
+                                <span id="constraint-example">Example: a + b <= 10; a >= 0; b >= 0</span>
+                            </p>
+                        </div>
+
+                        <div class="flex space-x-4">
+                            <button type="submit" id="solveBtn"
+                                class="flex-grow bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-medium py-3 px-6 rounded-xl transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-400">
+                                Solve
+                            </button>
+                            <button type="button" id="clearBtn"
+                                class="clear-button px-4 py-3 rounded-xl transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-400">
+                                Clear
+                            </button>
+                        </div>
+                    </form>
+                    <div id="error-message" class="text-red-400 mt-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/50 hidden overflow-auto max-h-48"></div>
+                </div>
+            </div>
+
+            <div class="xl:col-span-8 space-y-6">
+                <div id="solution-container" class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-6 border border-gray-700/50 hidden">
+                    <h2 class="text-2xl font-semibold mb-4 text-green-400">Problem Statement</h2>
+                    <div class="space-y-4 mb-6">
+                        <div id="problem-statement" class="text-lg"></div>
+                    </div>
+
+                    <h2 class="text-2xl font-semibold mb-4 text-green-400">Solution</h2>
+                    <div class="space-y-4">
+                        <div id="solution-values" class="text-lg"></div>
+                        <div id="optimal-value" class="text-lg"></div>
+                        <div id="iterations" class="text-lg"></div>
+                    </div>
+
+                    <div id="kkt-container" class="mt-6 hidden">
+                        <h2 class="text-2xl font-semibold mb-4 text-green-400">KKT Conditions</h2>
+                        <div id="kkt-conditions" class="text-lg bg-gray-700/30 p-4 rounded-xl font-mono whitespace-pre overflow-x-auto"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Animation setup
+            gsap.set('#mainContainer', { opacity: 0 });
+            gsap.set('.form-group', { opacity: 0, y: 20 });
+            gsap.set('#solveBtn, #clearBtn', { opacity: 0, y: 20 });
+            gsap.set('.back-button', { opacity: 0, x: -50 });
+            
+            // Animation timeline
+            const tl = gsap.timeline({
+                defaults: { ease: 'power2.out', duration: 0.8 }
+            });
+            
+            tl.to('#mainContainer', { opacity: 1, duration: 1 })
+              .from('h1', { y: -50, opacity: 0, duration: 0.8 }, "-=0.5")
+              .to('.back-button', { x: 0, opacity: 1, duration: 0.6 }, "-=0.6")
+              .to('.form-group', { 
+                  opacity: 1, 
+                  y: 0, 
+                  stagger: 0.2, 
+                  duration: 0.8, 
+                  ease: 'back.out' 
+              }, "-=0.4")
+              .to('#solveBtn, #clearBtn', { 
+                  opacity: 1, 
+                  y: 0, 
+                  duration: 0.8, 
+                  stagger: 0.1, 
+                  ease: 'back.out' 
+              }, "-=0.2");
+            
+            // Initialize form elements
+            const form = document.getElementById('nlp-form');
+            const clearBtn = document.getElementById('clearBtn');
+            const errorMessage = document.getElementById('error-message');
+            const solutionContainer = document.getElementById('solution-container');
+            const problemTypeSelect = document.getElementById('problem_type');
+            
+            // Initialize MathQuill
+            var MQ = MathQuill.getInterface(2);
+            
+            // MathQuill configuration
+            var mathFieldConfig = {
+                spaceBehavesLikeTab: true,
+                restrictMismatchedBrackets: true,
+                autoOperatorNames: 'sin cos tan log exp ln sqrt',
+                supSubsRequireOperand: false,  // Allow superscripts without requiring a base
+                charsThatBreakOutOfSupSub: '+-=<>',  // Characters that end superscript mode
+                autoCommands: 'pi theta sqrt',
+                maxDepth: 10,  // Allow deeper nesting for complex expressions
+                handlers: {
+                    edit: function(mathField) {
+                        if (mathField.el().id === 'objective-math') {
+                            document.getElementById('objective').value = mathField.latex();
+                        } else if (mathField.el().id === 'constraints-math') {
+                            document.getElementById('constraints').value = mathField.latex();
+                        }
+                        updatePlaceholderVisibility(mathField);
+                    }
+                }
+            };
+            
+            // Initialize objective function MathField
+            var objectiveMathField = MQ.MathField(document.getElementById('objective-math'), mathFieldConfig);
+            objectiveMathField.el().setAttribute('data-placeholder', '2a^2 + 3b^2 - 4a - 6b');
+            
+            // Initialize constraints MathField
+            var constraintsMathField = MQ.MathField(document.getElementById('constraints-math'), mathFieldConfig);
+            constraintsMathField.el().setAttribute('data-placeholder', 'a + b <= 10; a >= 0; b >= 0');
+            
+            // Function to update placeholder visibility
+            function updatePlaceholderVisibility(mathField) {
+                if (mathField.latex() === '') {
+                    mathField.el().classList.add('mq-empty');
+                } else {
+                    mathField.el().classList.remove('mq-empty');
+                }
+            }
+            
+            // Initial placeholder visibility check
+            updatePlaceholderVisibility(objectiveMathField);
+            updatePlaceholderVisibility(constraintsMathField);
+            
+            // Toggle between problem types
+            problemTypeSelect.addEventListener('change', function() {
+                if (this.value === 'quadratic') {
+                    document.getElementById('quadratic-example').classList.remove('hidden');
+                    document.getElementById('nonlinear-example').classList.add('hidden');
+                    objectiveMathField.el().setAttribute('data-placeholder', '2a^2 + 3b^2 - 4a - 6b');
+                } else {
+                    document.getElementById('quadratic-example').classList.add('hidden');
+                    document.getElementById('nonlinear-example').classList.remove('hidden');
+                    objectiveMathField.el().setAttribute('data-placeholder', 'sin(a) + b^3 - 2a*b');
+                }
+                updatePlaceholderVisibility(objectiveMathField);
+            });
+            
+            // Clear form
+            clearBtn.addEventListener('click', function() {
+                objectiveMathField.latex('');
+                constraintsMathField.latex('');
+                errorMessage.classList.add('hidden');
+                solutionContainer.classList.add('hidden');
+                updatePlaceholderVisibility(objectiveMathField);
+                updatePlaceholderVisibility(constraintsMathField);
+            });
+            
+            // Handle form submission
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                // Hide previous results
+                errorMessage.classList.add('hidden');
+                solutionContainer.classList.add('hidden');
+                
+                try {
+                    // Get form values
+                    const problemType = document.getElementById('problem_type').value;
+                    const minMax = document.getElementById('min_max').value;
+                    
+                    // Get objective function and constraints
+                    const objective = objectiveMathField.latex();
+                    const constraints = constraintsMathField.latex();
+                    
+                    // Validate inputs
+                    if (!objective) {
+                        throw new Error("Please enter an objective function");
+                    }
+                    
+                    if (!constraints) {
+                        throw new Error("Please enter at least one constraint.");
+                    }
+                    
+                    // Prepare data for the backend API
+                    const formData = {
+                        problem_type: problemType,
+                        min_max: minMax,
+                        objective: objective,
+                        constraints: constraints
+                    };
+                    
+                    // Show loading indicator
+                    const solveBtn = document.getElementById('solveBtn');
+                    solveBtn.disabled = true;
+                    solveBtn.innerHTML = '<div class="flex justify-center items-center gap-2"><div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div> Solving...</div>';
+                    
+                    // Send API request
+                    const response = await fetch('/nonlinear/solve/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        },
+                        body: JSON.stringify(formData)
+                    });
+                    
+                    // Reset button state
+                    solveBtn.disabled = false;
+                    solveBtn.innerHTML = 'Solve';
+                    
+                    if (!response.ok) {
+                        throw new Error("Server error occurred. Please try again.");
+                    }
+                    
+                    const result = await response.json();
+                    
+                    if (result.error) {
+                        throw new Error(result.error);
+                    }
+                    
+                    // Display the solution
+                    displaySolution(result);
+                    
+                } catch (error) {
+                    // Show error message
+                    errorMessage.textContent = error.message;
+                    errorMessage.classList.remove('hidden');
+                }
+            });
+            
+            // Display solution results in the UI
+            function displaySolution(data) {
+                // Ensure we have all the needed properties, with defaults if missing
+                const problemData = data.problem || {};
+                
+                // Display problem statement
+                document.getElementById('problem-statement').innerHTML = formatProblemStatement(
+                    problemData.problemType || data.problem_type,
+                    problemData.minMax || data.min_max,
+                    problemData.objective || data.objective,
+                    problemData.constraints || data.constraints
+                );
+                
+                // Display solution values
+                document.getElementById('solution-values').innerHTML = formatSolutionValues(data.solution);
+                
+                // Display optimal value
+                const optimalValueEl = document.getElementById('optimal-value');
+                const optimalValue = data.objectiveValue || data.optimal_value;
+                const minMax = problemData.minMax || data.min_max; 
+                optimalValueEl.textContent = `Optimal ${minMax === 'min' ? 'minimum' : 'maximum'} value: ${optimalValue}`;
+                
+                // Display iterations if available
+                const iterationsEl = document.getElementById('iterations');
+                if (data.iterations !== undefined) {
+                    iterationsEl.textContent = `Iterations: ${data.iterations}`;
+                    iterationsEl.classList.remove('hidden');
+                } else {
+                    iterationsEl.classList.add('hidden');
+                }
+                
+                // Display KKT conditions if available
+                const kktContainer = document.getElementById('kkt-container');
+                if (data.kkt_conditions || data.kktConditions) {
+                    document.getElementById('kkt-conditions').textContent = data.kkt_conditions || data.kktConditions;
+                    kktContainer.classList.remove('hidden');
+                } else {
+                    kktContainer.classList.add('hidden');
+                }
+                
+                // Show the solution container
+                solutionContainer.classList.remove('hidden');
+                
+                // Scroll to the solution
+                setTimeout(() => {
+                    solutionContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            }
+            
+            // Format problem statement for display
+            function formatProblemStatement(problemType, minMax, objective, constraints) {
+                const operation = minMax === 'min' ? 'Minimize' : 'Maximize';
+                const problemDescription = problemType === 'quadratic' ? 'Quadratic Programming' : 'Nonlinear Programming';
+                
+                let html = `<div class="mb-2 font-semibold">${operation} the following ${problemDescription} problem:</div>`;
+                html += `<div class="mb-2">Objective function: ${objective || 'Not specified'}</div>`;
+                html += `<div>Subject to:</div>`;
+                html += `<ul class="list-disc pl-5 space-y-1">`;
+                
+                // Check if constraints exist before attempting to split
+                // Convert constraints to string and ensure it's valid for splitting
+                if (constraints) {
+                    // Ensure constraints is a string
+                    const constraintsStr = String(constraints);
+                    
+                    // Check if the string contains semicolons
+                    if (constraintsStr.includes(';')) {
+                        // Split by semicolon and format each constraint
+                        constraintsStr.split(';').forEach(constraint => {
+                            const trimmed = constraint.trim();
+                            if (trimmed) {
+                                html += `<li class="constraint-row">${trimmed}</li>`;
+                            }
+                        });
+                    } else {
+                        // If no semicolons, treat the whole string as one constraint
+                        html += `<li class="constraint-row">${constraintsStr.trim()}</li>`;
+                    }
+                } else {
+                    // Handle case where constraints is undefined
+                    html += `<li class="constraint-row">No constraints available</li>`;
+                }
+                
+                html += `</ul>`;
+                return html;
+            }
+            
+            // Format solution values for display
+            function formatSolutionValues(solution) {
+                if (!solution || Object.keys(solution).length === 0) {
+                    return "No solution found.";
+                }
+                
+                let html = `<div class="mb-2 font-semibold">Optimal solution:</div>`;
+                html += `<ul class="list-disc pl-5 space-y-1">`;
+                
+                // Format each variable value
+                Object.entries(solution).forEach(([variable, value]) => {
+                    html += `<li>${variable} = ${value}</li>`;
+                });
+                
+                html += `</ul>`;
+                return html;
+            }
+        });
+    </script>
+</body>
+</html>

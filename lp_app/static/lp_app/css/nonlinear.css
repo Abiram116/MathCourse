@@ -1,0 +1,315 @@
+/* Title Gradient */
+.title-gradient {
+    background: linear-gradient(to right, #4ade80, #3b82f6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 30px rgba(74, 222, 128, 0.2);
+}
+
+/* Back Button */
+.back-button {
+    position: fixed;
+    top: 1.25rem;
+    left: 1.25rem;
+    background: rgba(17, 24, 39, 0.8);
+    backdrop-filter: blur(8px);
+    padding: 0.5rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(75, 85, 99, 0.5);
+    cursor: pointer;
+    z-index: 50;
+    opacity: 0;
+    transform: translateX(-3rem);
+    transition: all 0.3s ease;
+}
+
+.back-button:hover {
+    transform: scale(1.1) translateX(0);
+    background: rgba(17, 24, 39, 0.9);
+}
+
+/* Back Arrow */
+.back-arrow {
+    width: 1.5rem;
+    height: 1.5rem;
+    fill: #4ade80;
+}
+
+/* Clear Button */
+.clear-button {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+    border: 1px solid #3b82f6;
+    transition: all 0.3s ease;
+}
+
+.clear-button:hover {
+    background: rgba(59, 130, 246, 0.3);
+    color: #4ade80;
+    border-color: #4ade80;
+}
+
+/* --- CSS for MathQuill Font Styling (Incorporating Placeholder Font) --- */
+
+/* Apply a serif math font and slightly larger size to the input field */
+/* NOTE: Your existing CSS applies font-family later in .mq-math-mode, which is also fine */
+.mq-editable-field {
+    width: 100% !important;
+    background: #374151 !important;
+    border: 1px solid #4B5563 !important;
+    border-radius: 0.75rem !important;
+    color: white !important;
+    transition: all 0.2s ease-in-out !important;
+    min-height: 3rem !important;
+    display: flex !important;
+    align-items: center !important;
+    padding: 0 1rem !important;
+    position: relative !important;
+    font-size: 1.1rem !important; /* Base font size */
+}
+
+.mq-editable-field.mq-focused {
+    border-color: #4ade80 !important;
+    box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.2) !important;
+}
+
+/* Ensure the placeholder text uses the default body font (e.g., Inter) */
+.mq-editable-field.mq-empty:before {
+    content: attr(data-placeholder);
+    color: rgba(255, 255, 255, 0.4) !important;
+    position: absolute !important;
+    left: 1rem !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    pointer-events: none !important;
+    font-size: 1rem !important; /* Reset placeholder font size */
+    z-index: 1 !important;
+    display: block !important;
+    opacity: 1 !important;
+    transition: opacity 0.2s ease-in-out !important;
+    font-family: sans-serif !important; /* Or replace sans-serif with your specific body font */
+    font-style: italic !important; /* Optional: Keep placeholder italic */
+}
+
+.mq-editable-field:not(.mq-empty):before {
+    opacity: 0 !important;
+}
+
+/* Math Mode & Cursor */
+.mq-math-mode,
+.mq-math-mode .mq-non-leaf,
+.mq-math-mode .mq-digit,
+.mq-math-mode var,
+.mq-math-mode .mq-operator-name,
+.mq-math-mode .mq-paren {
+    color: white !important;
+    /* This correctly sets the serif font for the actual math */
+    font-family: 'Times New Roman', Times, serif !important;
+    font-size: 1.1rem !important; /* Ensure math font size matches field's base */
+}
+
+/* Subscripts and Superscripts - Desmos Style */
+.mq-math-mode .mq-supsub {
+    display: inline-block !important;
+    vertical-align: baseline !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.mq-math-mode .mq-supsub .mq-sup {
+    display: inline-block !important;
+    vertical-align: super !important;
+    font-size: 70% !important;
+    position: relative !important;
+    top: 0.3em !important;
+    left: -0.1em !important;
+}
+
+.mq-math-mode .mq-supsub .mq-sub {
+    display: inline-block !important;
+    vertical-align: sub !important; 
+    font-size: 70% !important;
+    position: relative !important;
+    bottom: -0.4em !important;
+    left: -0.1em !important;
+}
+
+/* Variable styling */
+.mq-math-mode var {
+    font-style: italic !important;
+    font-weight: normal !important;
+}
+
+/* Fix the alignment of variables with subscripts */
+.mq-math-mode .mq-supsub.mq-non-leaf {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    vertical-align: baseline !important;
+}
+
+/* Make the subscripts smaller and properly placed */
+.mq-math-mode .mq-sub {
+    font-size: 65% !important;
+    position: relative !important;
+    bottom: -0.5em !important; /* Adjust as needed for vertical alignment */
+    margin-left: -0.1em !important;
+    margin-right: 0 !important;
+    line-height: 1 !important; /* Prevent line-height issues */
+    display: inline-block !important; /* Ensure proper rendering */
+    vertical-align: baseline !important; /* Align relative to baseline */
+}
+
+/* Improve superscript positioning */
+.mq-math-mode .mq-sup {
+    font-size: 65% !important;
+    position: relative !important;
+    top: -0.7em !important; /* Adjust as needed for vertical alignment */
+    margin-left: -0.1em !important;
+    margin-right: 0 !important;
+    line-height: 1 !important; /* Prevent line-height issues */
+    display: inline-block !important; /* Ensure proper rendering */
+    vertical-align: baseline !important; /* Align relative to baseline */
+}
+
+/* Cursor styling */
+.mq-cursor {
+    border-left: 1px solid #fff !important;
+    margin-left: -1px !important; /* Fine-tune cursor position */
+    margin-right: -1px !important;
+    border-color: #fff !important;
+    visibility: visible !important;
+    display: inline-block !important; /* Use inline-block */
+    vertical-align: baseline !important; /* Align with text */
+    position: relative !important; /* Allow positioning */
+    /* background-color: white; */ /* Optional: make cursor thicker */
+    /* width: 1px; */ /* Optional: make cursor thicker */
+}
+
+/* Selection styling */
+.mq-math-mode .mq-selection,
+.mq-editable-field .mq-selection {
+    background: rgba(74, 222, 128, 0.3) !important;
+    color: white !important; /* Ensure selected text is visible */
+}
+
+/* Matrix Inputs */
+.q-matrix-input {
+    text-align: center;
+    font-size: 0.875rem;
+}
+
+/* Dropdown Option Styling */
+select option {
+    background-color: #374151;
+    color: white;
+}
+
+/* Main Container and Button Animations */
+#mainContainer {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.form-group {
+    opacity: 0;
+    transform: translateY(1.25rem);
+    transition: all 0.3s ease;
+}
+
+#solveBtn, 
+#clearBtn {
+    opacity: 0;
+    transform: translateY(1.25rem);
+    transition: all 0.3s ease;
+}
+
+/* KKT Conditions Styles */
+#kkt-conditions {
+    line-height: 1.6;
+    font-size: 0.9rem;
+}
+
+/* Constraint rows styling */
+.constraint-row {
+    transition: all 0.3s ease;
+}
+
+.constraint-row:hover {
+    transform: translateX(5px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 1279px) {
+    .title-gradient {
+        font-size: 1.875rem;
+    }
+    
+    #solution-container,
+    #visualization-container {
+        margin-top: 2rem;
+    }
+}
+
+/* Visual hover effects */
+.form-group:hover label {
+    color: #4ade80;
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: #4ade80;
+    box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.2);
+}
+
+/* Math input buttons - no longer needed */
+/* .math-input-button {
+    background-color: rgba(74, 222, 128, 0.2);
+    color: #4ade80;
+    border: 1px solid rgba(74, 222, 128, 0.4);
+    border-radius: 0.375rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.math-input-button:hover {
+    background-color: rgba(74, 222, 128, 0.3);
+    transform: translateY(-1px);
+}
+
+.math-input-button:active {
+    transform: translateY(0);
+} */
+
+/* Variable styling */
+.mq-math-mode var {
+    font-style: italic !important;
+    font-weight: normal !important;
+}
+
+/* Fix the alignment of variables with subscripts */
+.mq-math-mode .mq-supsub.mq-non-leaf {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    vertical-align: baseline !important;
+}
+
+/* Make the subscripts smaller and properly placed */
+.mq-math-mode .mq-sub {
+    font-size: 65% !important;
+    position: relative !important;
+    bottom: -0.5em !important;
+    margin-left: -0.1em !important;
+    margin-right: 0 !important;
+}
+
+/* Improve superscript positioning */
+.mq-math-mode .mq-sup {
+    font-size: 65% !important;
+    position: relative !important;
+    top: -0.7em !important;
+    margin-left: -0.1em !important;
+    margin-right: 0 !important;
+} 
