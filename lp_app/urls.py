@@ -10,7 +10,9 @@ from .views import (
     integer_solver_view,
     solve_integer,
     fractional_solver_view,
-    solve_fractional
+    solve_fractional,
+    nonlinear_solver_view,
+    solve_nonlinear
 )
 from .views.base_views import dijkstra_view, shortest_path
 
@@ -35,4 +37,7 @@ urlpatterns = [
     # Dijkstra's algorithm paths
     path('dijkstra/', dijkstra_view, name='dijkstra'),
     path('api/shortest_path/', shortest_path, name='shortest_path'),
+    # Nonlinear programming paths
+    path('nonlinear/', nonlinear_solver_view, name='nonlinear'),
+    path('nonlinear/solve/', solve_nonlinear, name='solve_nonlinear'),
 ]
