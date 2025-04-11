@@ -7,53 +7,109 @@
     <title>Nonlinear Programming Solver</title>
     <link href="{% static 'lp_app/css/nonlinear.css' %}" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.css">
+    <!-- Add MathQuill CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.css">
     <style>
-        /* Style the MathQuill field */
-        .mq-editable-field {
-            border: 1px solid #4a5568; /* gray-600 */
-            padding: 0.75rem 1rem; /* py-3 px-4 */
-            border-radius: 0.75rem; /* rounded-xl */
-            background-color: #2d3748; /* gray-700 */
-            color: #f7fafc; /* gray-100 */
-            width: 100%;
-            min-height: 46px; /* Ensure minimum height */
-            transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-            position: relative; /* Needed for placeholder */
-        }
-        .mq-editable-field.mq-empty::before {
-            content: attr(data-placeholder);
-            position: absolute;
-            left: 1rem; /* Match padding */
-            top: 0.75rem; /* Match padding */
-            color: #718096; /* gray-500 */
-            pointer-events: none; /* Allow clicking through */
-            z-index: 1;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: calc(100% - 2rem); /* Prevent overflow */
-        }
-        /* Hide placeholder when field has content or is focused */
-        .mq-editable-field:not(.mq-empty)::before,
-        .mq-editable-field.mq-focused::before {
-            /* display: none; */ /* Using opacity for smoother transition if desired */
-            opacity: 0;
-        }
-        /* Ensure cursor is visible */
-        .mq-cursor {
-            border-left: 1px solid #f7fafc; /* white */
-            margin-right: -1px;
-        }
-        .mq-editable-field.mq-focused {
-            outline: none;
-            border-color: #48bb78; /* green-400 */
-            box-shadow: 0 0 0 2px rgba(72, 187, 120, 0.5); /* focus:ring-2 focus:ring-green-400 */
-        }
-        
         /* Hide original inputs */
         #objective, #constraints {
-            display: none;
+            display: none; /* Hide the actual input fields */
+        }
+        
+        /* MathQuill styling */
+        .mathquill-editor-container {
+            position: relative;
+            width: 100%;
+        }
+        
+        .mathquill-editor {
+            width: 100%;
+            background-color: #374151; /* bg-gray-700 */
+            color: white;
+            border: 1px solid #4B5563; /* border-gray-600 */
+            border-radius: 0.75rem; /* rounded-xl */
+            padding: 0.75rem 1rem; /* px-4 py-3 */
+            transition: all 0.2s;
+            font-size: 1.15rem;
+            margin-bottom: 0.5rem;
+            min-height: 3.5rem;
+            line-height: 1.6;
+        }
+        
+        .mathquill-editor:focus-within {
+            border-color: #4ADE80; /* green-400 */
+            box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.2); /* focus:ring-2 focus:ring-green-400 */
+            outline: none;
+        }
+        
+        /* Placeholder styling */
+        .editor-placeholder {
+            position: absolute;
+            top: 50%;
+            left: 1rem;
+            transform: translateY(-50%);
+            color: #9CA3AF; /* text-gray-400 */
+            pointer-events: none;
+            transition: opacity 0.2s;
+            z-index: 1;
+            font-size: 0.95rem;
+            font-style: italic;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Hide placeholder when editor has content or is focused */
+        .has-content + .editor-placeholder,
+        .mq-focused + .editor-placeholder {
+            opacity: 0;
+        }
+        
+        /* Fix MathQuill color in dark mode */
+        .mq-editable-field, .mq-math-mode {
+            color: white !important;
+        }
+        
+        .mq-editable-field .mq-cursor {
+            border-left: 1px solid white !important;
+        }
+        
+        /* Fix superscript and subscript display */
+        .mq-supsub {
+            color: white !important;
+            margin-left: 0.05em !important;
+            font-size: 95% !important;
+        }
+        
+        /* Improve spacing for powers */
+        .mq-supsub .mq-sup {
+            top: 0.25em !important;
+            font-size: 80% !important; 
+            color: white !important;
+        }
+        
+        .mq-supsub .mq-sub {
+            bottom: 0.25em !important;
+            font-size: 80% !important;
+            color: white !important;
+        }
+        
+        /* Better alignment of superscripts */
+        .mq-math-mode var + .mq-supsub {
+            margin-left: -0.1em !important;
+        }
+        
+        /* Reduce the vertical shift of superscripts */
+        .mq-math-mode .mq-supsub {
+            vertical-align: baseline !important;
+        }
+        
+        /* Special styling for multiple digit exponents */
+        .mq-supsub .mq-sup .mq-digit {
+            letter-spacing: 0 !important;
+            font-family: inherit !important;
+        }
+        
+        /* Make sure there's enough room for superscripts */
+        .mq-root-block {
+            padding: 0.5em !important;
         }
         
         /* Back Button Styles */
@@ -102,10 +158,50 @@
             background-color: #718096; /* gray-500 */
             color: #f7fafc; /* gray-100 */
         }
+        /* Fix fractions display */
+        .mq-fraction {
+            font-size: 100% !important;
+        }
+        
+        .mq-numerator {
+            padding: 0 0.1em !important;
+        }
+        
+        .mq-denominator {
+            padding: 0 0.1em !important;
+        }
+        
+        /* Fix spacing between variables */
+        .mq-math-mode var + var {
+            margin-left: 0.1em !important;
+        }
+        
+        /* Fix vertical alignment of elements */
+        .mq-math-mode .mq-binary-operator {
+            padding: 0 0.1em !important;
+        }
+        
+        /* Fix horizontal spacing between elements */
+        .mq-math-mode var {
+            margin: 0 0.05em !important;
+        }
+        
+        /* Override MathQuill default styling for better appearance */
+        .mq-editable-field {
+            border: none !important;
+            box-shadow: none !important;
+        }
+        
+        /* Improve appearance of LaTeX math operators */
+        .mq-math-mode .mq-operator-name {
+            font-family: 'Times New Roman', Times, serif !important;
+            margin-right: 0.1em !important;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <!-- Add MathQuill JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.js"></script>
 </head>
 <body class="bg-gradient-to-br from-gray-900 to-gray-800 text-gray-100 min-h-screen overflow-auto flex items-center">
     <div class="container mx-auto px-4 py-6 max-w-7xl" id="mainContainer">
@@ -119,34 +215,18 @@
             </svg>
         </a>
 
+        <!-- Fallback content in case main content doesn't load -->
+        <div id="fallback-content" class="bg-gray-800 p-6 rounded-lg mb-6 text-white text-center">
+            <p class="mb-4">If you're seeing this message and not the full interface, there might be an issue with JavaScript or CSS loading.</p>
+            <p>Try refreshing the page. If the issue persists, please check the browser console for errors.</p>
+        </div>
+
         <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
             <div class="xl:col-span-4">
                 <div class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-6 border border-gray-700/50">
                     <form id="nlp-form" class="space-y-4">
                         {% csrf_token %}
 
-                        <div class="bg-gray-700/50 p-3 rounded-lg mb-4 text-xs text-gray-300">
-                            <p class="font-medium text-green-400 mb-1">Input Tips:</p>
-                            <ul class="list-disc pl-5 space-y-1">
-                                <li>Use variables like <strong>a, b, c</strong> instead of x, y, z</li>
-                                <li>Use <strong>^</strong> for exponents (e.g., a^2, b^3)</li>
-                                <li>Use <strong>*</strong> for multiplication (e.g., 2*a, a*b)</li>
-                                <li>Type function names like <strong>sin</strong>, <strong>cos</strong>, <strong>log</strong></li>
-                                <li>Use <strong>&lt;=</strong> for ≤ and <strong>&gt;=</strong> for ≥</li>
-                                <li>Separate constraints with semicolons (<strong>;</strong>)</li>
-                            </ul>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="block text-sm font-medium mb-2 text-green-400" for="problem_type">
-                                Problem Type
-                            </label>
-                            <select id="problem_type" name="problem_type" required
-                                class="w-full bg-gray-700 text-white border border-gray-600 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-400 focus:border-transparent transition-colors duration-200">
-                                <option value="quadratic">Quadratic Programming</option>
-                                <option value="nonlinear">General Nonlinear (KKT)</option>
-                            </select>
-                        </div>
 
                         <div class="form-group">
                             <label class="block text-sm font-medium mb-2 text-green-400" for="min_max">
@@ -163,10 +243,12 @@
                             <label class="block text-sm font-medium mb-2 text-green-400">
                                 Objective Function
                             </label>
-                            <span id="objective-math" class="mq-editable-field block"></span>
-                            <input type="hidden" id="objective" name="objective">
+                            <div class="mathquill-editor-container">
+                                <div id="objective-editor" class="mathquill-editor"></div>
+                                <div class="editor-placeholder">Enter objective function (e.g., 2a^2 + 3b^2 - 4a - 6b)</div>
+                            </div>
+                            <input type="text" id="objective" name="objective" class="hidden">
                             <p class="mt-1 text-xs text-gray-400">
-                                <span id="quadratic-example">Example: 2a^2 + 3b^2 - 4a - 6b</span>
                                 <span id="nonlinear-example" class="hidden">Example: sin(a) + b^3 - 2a*b</span>
                             </p>
                         </div>
@@ -175,12 +257,61 @@
                             <label class="block text-sm font-medium mb-2 text-green-400">
                                 Constraints
                             </label>
-                            <span id="constraints-math" class="mq-editable-field block"></span>
-                            <input type="hidden" id="constraints" name="constraints">
+                            <div class="mathquill-editor-container">
+                                <div id="constraints-editor" class="mathquill-editor"></div>
+                                <div class="editor-placeholder">Enter constraints (e.g., a + b <= 10; a >= 0; b >= 0)</div>
+                            </div>
+                            <input type="text" id="constraints" name="constraints" class="hidden">
                             <p class="mt-1 text-xs text-gray-400">Enter constraints separated by semicolons (;)</p>
                             <p class="mt-1 text-xs text-gray-400">
                                 <span id="constraint-example">Example: a + b <= 10; a >= 0; b >= 0</span>
                             </p>
+                        </div>
+                        
+                        <!-- New problem type detection display -->
+                        <div class="bg-blue-900/30 p-4 rounded-lg border border-blue-700/50 mt-4">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <h3 class="text-sm font-medium text-blue-300">Detected Problem Type:</h3>
+                                    <p class="mt-1 text-sm text-blue-200" id="detected-problem-type">
+                                        <span class="font-medium">Enter an objective function to detect</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- QP Solution Method Selection (initially hidden) -->
+                        <div id="qp-method-selection" class="form-group hidden">
+                            <label class="block text-sm font-medium mb-2 text-green-400" for="method">
+                                Solution Method for Quadratic Programming
+                            </label>
+                            <select id="method" name="method"
+                                class="w-full bg-gray-700 text-white border border-gray-600 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-400 focus:border-transparent transition-colors duration-200">
+                                <option value="auto">Automatic Solver (CVXPY)</option>
+                                <option value="wolfe">Wolfe's Method (Dual)</option>
+                                <option value="beale">Beale's Method (Modified Simplex)</option>
+                            </select>
+                            <p class="mt-1 text-xs text-gray-400">
+                                Select the solution method for your quadratic program
+                            </p>
+                        </div>
+
+                        <div class="flex items-center justify-end mb-4">
+                            <span class="text-sm text-gray-400 mr-2">Display Mode:</span>
+                            <label class="inline-flex items-center cursor-pointer">
+                                <span class="mr-2 text-xs text-gray-400">Plain</span>
+                                <div class="relative">
+                                    <input type="checkbox" id="math-notation-toggle" class="sr-only" checked>
+                                    <div class="block bg-gray-600 w-10 h-5 rounded-full"></div>
+                                    <div class="dot absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition transform translate-x-5"></div>
+                                </div>
+                                <span class="ml-2 text-xs text-gray-300">Math</span>
+                            </label>
                         </div>
 
                         <div class="flex space-x-4">
@@ -198,23 +329,133 @@
                 </div>
             </div>
 
-            <div class="xl:col-span-8 space-y-6">
-                <div id="solution-container" class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-6 border border-gray-700/50 hidden">
-                    <h2 class="text-2xl font-semibold mb-4 text-green-400">Problem Statement</h2>
-                    <div class="space-y-4 mb-6">
-                        <div id="problem-statement" class="text-lg"></div>
+            <div class="xl:col-span-8">
+                <div id="results-container" class="hidden">
+                    <div id="results-panel" class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl border border-gray-700/50 overflow-hidden">
+                        <!-- Enhanced Results Header with Tabs -->
+                        <div class="border-b border-gray-700/50">
+                            <div class="flex">
+                                <button id="tab-kkt" class="tab-button px-6 py-4 text-green-400 border-b-2 border-green-400 font-medium">
+                                    KKT Conditions
+                                </button>
+                                <button id="tab-steps" class="tab-button px-6 py-4 text-gray-400 hover:text-gray-300">
+                                    Method & Solution
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- KKT Conditions Tab Content (now first) -->
+                        <div id="content-kkt" class="tab-content p-6">
+                            <div class="mb-6">
+                                <h2 class="text-xl font-semibold mb-2 text-green-400">Karush-Kuhn-Tucker (KKT) Conditions</h2>
+                                <p class="text-gray-300 mb-4">These are the necessary conditions for optimality in constrained optimization problems.</p>
+                                <div id="kkt-conditions" class="space-y-4">
+                                    <!-- KKT conditions will be inserted here -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Method Steps Tab Content (now second, including solution) -->
+                        <div id="content-steps" class="tab-content p-6 hidden">
+                            <div class="mb-6">
+                                <h2 class="text-xl font-semibold mb-2 text-green-400">Solution Method</h2>
+                                <div id="method-steps" class="space-y-4 mb-6">
+                                    <!-- Method steps will be inserted here -->
                     </div>
 
-                    <h2 class="text-2xl font-semibold mb-4 text-green-400">Solution</h2>
-                    <div class="space-y-4">
-                        <div id="solution-values" class="text-lg"></div>
-                        <div id="optimal-value" class="text-lg"></div>
-                        <div id="iterations" class="text-lg"></div>
+                                <!-- Add the solution section here -->
+                                <h2 class="text-xl font-semibold mb-2 text-green-400 mt-8">Optimal Solution</h2>
+                                <div id="solution-not-ready" class="bg-blue-900/30 p-4 rounded-lg border border-blue-700/50 mb-4">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                                            <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                        </div>
+                                        <div class="ml-3 flex-grow">
+                                            <h3 class="text-sm font-medium text-blue-300">Solution Not Computed Yet</h3>
+                                            <p class="mt-1 text-sm text-blue-200">
+                                                The mathematical structure and KKT conditions are available, but the optimal solution has not been computed.
+                                            </p>
+                                        </div>
+                                        <button id="compute-solution-btn" class="ml-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition duration-300">
+                                            Show Optimal Solution
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="solution-summary" class="bg-gray-700/30 rounded-lg p-4 border border-gray-600/50">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <h3 class="text-sm font-medium text-gray-300 mb-2">Variables</h3>
+                                            <div id="solution-variables" class="space-y-2"></div>
+                                        </div>
+                                        <div>
+                                            <h3 class="text-sm font-medium text-gray-300 mb-2">Results</h3>
+                                            <div class="space-y-2">
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-400">Objective Value:</span>
+                                                    <span id="objective-value" class="font-medium text-green-400"></span>
+                                                </div>
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-400">Problem Type:</span>
+                                                    <span id="problem-type" class="font-medium"></span>
+                                                </div>
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-400">Method:</span>
+                                                    <span id="solution-method" class="font-medium"></span>
+                                                </div>
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-400">Iterations:</span>
+                                                    <span id="iterations" class="font-medium"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="loading" class="hidden flex flex-col items-center justify-center h-full py-16">
+                    <div class="w-16 h-16 border-4 border-green-400 border-t-transparent rounded-full animate-spin"></div>
+                    <p class="mt-4 text-gray-300">Solving your nonlinear problem...</p>
                     </div>
 
-                    <div id="kkt-container" class="mt-6 hidden">
-                        <h2 class="text-2xl font-semibold mb-4 text-green-400">KKT Conditions</h2>
-                        <div id="kkt-conditions" class="text-lg bg-gray-700/30 p-4 rounded-xl font-mono whitespace-pre overflow-x-auto"></div>
+                <div id="welcome-panel" class="bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-700/50 h-full flex flex-col items-center justify-center text-center">
+                    <svg class="w-24 h-24 text-green-400 mb-6 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path>
+                    </svg>
+                    <h2 class="text-2xl font-bold mb-3 text-green-400">Nonlinear Programming Solver</h2>
+                    <p class="text-gray-300 mb-6 max-w-md">Enter your objective function and constraints to find the optimal solution for your nonlinear programming problem.</p>
+                    <div class="bg-gray-700/50 p-4 rounded-lg text-left w-full max-w-lg">
+                        <h3 class="text-sm font-medium text-green-400 mb-2">Features:</h3>
+                        <ul class="text-sm text-gray-300 space-y-2">
+                            <li class="flex items-start">
+                                <svg class="w-5 h-5 text-green-400 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                <span><strong>Automatic problem type detection</strong> - The solver identifies if your problem is Quadratic or General Nonlinear</span>
+                            </li>
+                            <li class="flex items-start">
+                                <svg class="w-5 h-5 text-green-400 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                <span><strong>Multiple solution methods</strong> - For Quadratic Programming, choose between Wolfe's method, Beale's method, or automatic solver</span>
+                            </li>
+                            <li class="flex items-start">
+                                <svg class="w-5 h-5 text-green-400 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                <span><strong>KKT Conditions</strong> - View the mathematical conditions for optimality</span>
+                            </li>
+                            <li class="flex items-start">
+                                <svg class="w-5 h-5 text-green-400 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                <span><strong>Step-by-step solution</strong> - See the detailed steps of the solution method</span>
+                            </li>
+                        </ul>
                     </div>
                 </div>
             </div>
@@ -222,289 +463,640 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Animation setup
-            gsap.set('#mainContainer', { opacity: 0 });
-            gsap.set('.form-group', { opacity: 0, y: 20 });
-            gsap.set('#solveBtn, #clearBtn', { opacity: 0, y: 20 });
-            gsap.set('.back-button', { opacity: 0, x: -50 });
-            
-            // Animation timeline
-            const tl = gsap.timeline({
-                defaults: { ease: 'power2.out', duration: 0.8 }
-            });
-            
-            tl.to('#mainContainer', { opacity: 1, duration: 1 })
-              .from('h1', { y: -50, opacity: 0, duration: 0.8 }, "-=0.5")
-              .to('.back-button', { x: 0, opacity: 1, duration: 0.6 }, "-=0.6")
-              .to('.form-group', { 
-                  opacity: 1, 
-                  y: 0, 
-                  stagger: 0.2, 
-                  duration: 0.8, 
-                  ease: 'back.out' 
-              }, "-=0.4")
-              .to('#solveBtn, #clearBtn', { 
-                  opacity: 1, 
-                  y: 0, 
-                  duration: 0.8, 
-                  stagger: 0.1, 
-                  ease: 'back.out' 
-              }, "-=0.2");
-            
-            // Initialize form elements
-            const form = document.getElementById('nlp-form');
-            const clearBtn = document.getElementById('clearBtn');
-            const errorMessage = document.getElementById('error-message');
-            const solutionContainer = document.getElementById('solution-container');
-            const problemTypeSelect = document.getElementById('problem_type');
+        $(document).ready(function() {
+            console.log("Document ready fired");
             
             // Initialize MathQuill
             var MQ = MathQuill.getInterface(2);
             
-            // MathQuill configuration
-            var mathFieldConfig = {
+            // Set up objective function editor
+            var objectiveEditor = MQ.MathField(document.getElementById('objective-editor'), {
                 spaceBehavesLikeTab: true,
-                restrictMismatchedBrackets: true,
-                autoOperatorNames: 'sin cos tan log exp ln sqrt',
-                supSubsRequireOperand: false,  // Allow superscripts without requiring a base
-                charsThatBreakOutOfSupSub: '+-=<>',  // Characters that end superscript mode
-                autoCommands: 'pi theta sqrt',
-                maxDepth: 10,  // Allow deeper nesting for complex expressions
                 handlers: {
-                    edit: function(mathField) {
-                        if (mathField.el().id === 'objective-math') {
-                            document.getElementById('objective').value = mathField.latex();
-                        } else if (mathField.el().id === 'constraints-math') {
-                            document.getElementById('constraints').value = mathField.latex();
+                    edit: function() {
+                        // Update hidden input with the latex content
+                        let latex = objectiveEditor.latex();
+                        // Convert latex to plain text formula
+                        let formula = convertLatexToFormula(latex);
+                        $('#objective').val(formula);
+                        // Trigger input event to update problem type detection
+                        $('#objective').trigger('input');
+                        
+                        // Toggle placeholder visibility
+                        if (latex.length > 0) {
+                            $('#objective-editor').addClass('has-content');
+                        } else {
+                            $('#objective-editor').removeClass('has-content');
                         }
-                        updatePlaceholderVisibility(mathField);
+                    },
+                    enter: function() {
+                        $('#nlp-form').submit();
+                        return false;
                     }
                 }
-            };
+            });
             
-            // Initialize objective function MathField
-            var objectiveMathField = MQ.MathField(document.getElementById('objective-math'), mathFieldConfig);
-            objectiveMathField.el().setAttribute('data-placeholder', '2a^2 + 3b^2 - 4a - 6b');
+            // Set up constraints editor
+            var constraintsEditor = MQ.MathField(document.getElementById('constraints-editor'), {
+                spaceBehavesLikeTab: true,
+                handlers: {
+                    edit: function() {
+                        // Update hidden input with the latex content
+                        let latex = constraintsEditor.latex();
+                        // Convert latex to plain text formula
+                        let formula = convertLatexToFormula(latex);
+                        $('#constraints').val(formula);
+                        // Trigger input event to update problem type detection
+                        $('#constraints').trigger('input');
+                        
+                        // Toggle placeholder visibility
+                        if (latex.length > 0) {
+                            $('#constraints-editor').addClass('has-content');
+                        } else {
+                            $('#constraints-editor').removeClass('has-content');
+                        }
+                    },
+                    enter: function() {
+                        $('#nlp-form').submit();
+                        return false;
+                    }
+                }
+            });
             
-            // Initialize constraints MathField
-            var constraintsMathField = MQ.MathField(document.getElementById('constraints-math'), mathFieldConfig);
-            constraintsMathField.el().setAttribute('data-placeholder', 'a + b <= 10; a >= 0; b >= 0');
+            // Convert LaTeX to formula
+            function convertLatexToFormula(latex) {
+                // Replace LaTeX commands with plain text equivalents
+                return latex
+                    .replace(/\\cdot/g, '*')                          // Replace \cdot with *
+                    .replace(/\\le/g, '<=')                           // Replace \le with <=
+                    .replace(/\\ge/g, '>=')                           // Replace \ge with >=
+                    .replace(/\\sin/g, 'sin')                         // Replace \sin with sin
+                    .replace(/\\cos/g, 'cos')                         // Replace \cos with cos
+                    .replace(/\\tan/g, 'tan')                         // Replace \tan with tan
+                    .replace(/\\log/g, 'log')                         // Replace \log with log
+                    .replace(/\\exp/g, 'exp')                         // Replace \exp with exp
+                    .replace(/\\sqrt\{([^}]+)\}/g, 'sqrt($1)')        // Replace \sqrt{x} with sqrt(x)
+                    .replace(/\^{([^}]+)}/g, '^$1')                   // Replace ^{2} with ^2
+                    .replace(/\^([a-zA-Z0-9])/g, '^$1');              // Preserve ^ operator
+            }
             
-            // Function to update placeholder visibility
-            function updatePlaceholderVisibility(mathField) {
-                if (mathField.latex() === '') {
-                    mathField.el().classList.add('mq-empty');
+            // Function to add example text to MathQuill editor
+            function setExampleText(editorField, text) {
+                editorField.latex('');  // Clear first
+                editorField.write(text);
+            }
+            
+            // Click handlers for examples
+            $('#quadratic-example').click(function() {
+                setExampleText(objectiveEditor, '2a^2 + 3b^2 - 4a - 6b');
+                $('#objective-editor').addClass('has-content');
+            });
+            
+            $('#nonlinear-example').click(function() {
+                setExampleText(objectiveEditor, '\\sin(a) + b^3 - 2a\\cdot b');
+                $('#objective-editor').addClass('has-content');
+            });
+            
+            $('#constraint-example').click(function() {
+                setExampleText(constraintsEditor, 'a + b \\le 10; a \\ge 0; b \\ge 0');
+                $('#constraints-editor').addClass('has-content');
+            });
+            
+            // Set initial placeholders
+            objectiveEditor.latex('');
+            constraintsEditor.latex('');
+            
+            // Show the main container immediately to fix blank screen issue
+            $('#mainContainer').css('opacity', 1);
+            console.log("Set mainContainer opacity to 1");
+            
+            // Hide the fallback content
+            $('#fallback-content').hide();
+            console.log("Hidden fallback content");
+            
+            // Show all form elements
+            $('.form-group').css({
+                'opacity': 1,
+                'transform': 'translateY(0)'
+            });
+            
+            // Show buttons
+            $('#solveBtn, #clearBtn').css({
+                'opacity': 1,
+                'transform': 'translateY(0)'
+            });
+            
+            // Show back button
+            $('.back-button').css({
+                'opacity': 1,
+                'transform': 'translateX(0)'
+            });
+            
+            // Tab switching
+            $(document).on('click', '.tab-button', function() {
+                // Get tab ID
+                const tabId = $(this).attr('id');
+                const contentId = tabId.replace('tab-', 'content-');
+                
+                // Activate tab button
+                $('.tab-button').removeClass('text-green-400 border-b-2 border-green-400 font-medium').addClass('text-gray-400 hover:text-gray-300');
+                $(this).removeClass('text-gray-400 hover:text-gray-300').addClass('text-green-400 border-b-2 border-green-400 font-medium');
+                
+                // Show content
+                $('.tab-content').addClass('hidden');
+                $('#' + contentId).removeClass('hidden');
+            });
+            
+            // Handle math notation toggle
+            let useMathNotation = true;
+            
+            $('#math-notation-toggle').change(function() {
+                useMathNotation = $(this).prop('checked');
+                
+                // Update the dot position in toggle
+                if (useMathNotation) {
+                    $('.dot').addClass('translate-x-5').removeClass('translate-x-0');
                 } else {
-                    mathField.el().classList.remove('mq-empty');
+                    $('.dot').addClass('translate-x-0').removeClass('translate-x-5');
+                }
+                
+                // Update display if results are visible
+                if ($('#results-container').is(':visible')) {
+                    // Re-render KKT conditions with current notation setting
+                    updateKKTDisplay();
+                }
+            });
+            
+            // Function to display with proper math notation or not based on toggle
+            function formatWithNotation(text) {
+                if (!text) return '';
+                
+                if (useMathNotation) {
+                    return text
+                        .trim()
+                        .replace(/<=/g, '≤')
+                        .replace(/>=/g, '≥')
+                        .replace(/==/g, '=')
+                        .replace(/\*/g, '·')
+                        .replace(/\^(\d+)/g, '<sup>$1</sup>')
+                        .replace(/sqrt\(([^)]+)\)/g, '√($1)')
+                        .replace(/(\d+)([a-zA-Z])/g, '$1·$2');
+                } else {
+                    return text.trim();
                 }
             }
             
-            // Initial placeholder visibility check
-            updatePlaceholderVisibility(objectiveMathField);
-            updatePlaceholderVisibility(constraintsMathField);
+            // Function to format constraint for display with proper math symbols
+            function formatConstraintForDisplay(constraint) {
+                return formatWithNotation(constraint);
+            }
             
-            // Toggle between problem types
-            problemTypeSelect.addEventListener('change', function() {
-                if (this.value === 'quadratic') {
-                    document.getElementById('quadratic-example').classList.remove('hidden');
-                    document.getElementById('nonlinear-example').classList.add('hidden');
-                    objectiveMathField.el().setAttribute('data-placeholder', '2a^2 + 3b^2 - 4a - 6b');
-                } else {
-                    document.getElementById('quadratic-example').classList.add('hidden');
-                    document.getElementById('nonlinear-example').classList.remove('hidden');
-                    objectiveMathField.el().setAttribute('data-placeholder', 'sin(a) + b^3 - 2a*b');
+            // Function to update KKT display based on current toggle state
+            function updateKKTDisplay() {
+                // Re-render KKT conditions with current notation setting
+                if (window.currentResult && window.currentResult.kkt_conditions) {
+                    const result = window.currentResult;
+                    $('#kkt-conditions').empty();
+                    
+                    if (Array.isArray(result.kkt_conditions) && typeof result.kkt_conditions[0] === 'object') {
+                        // New format with sections
+                        result.kkt_conditions.forEach(function(section) {
+                            const sectionHtml = `
+                                <div class="bg-gray-700/30 rounded-lg p-4 border border-gray-600/50 mb-4">
+                                    <h3 class="text-lg font-medium text-blue-400 mb-3">${section.title}</h3>
+                                    <div class="space-y-2">
+                                        ${section.conditions.map(cond => `<div class="text-gray-300 font-mono text-sm bg-gray-800/50 p-2 rounded">${formatConstraintForDisplay(cond)}</div>`).join('')}
+                                    </div>
+                                </div>
+                            `;
+                            $('#kkt-conditions').append(sectionHtml);
+                        });
+                    } else {
+                        // Old format as a string
+                        $('#kkt-conditions').append(`
+                            <div class="bg-gray-700/30 rounded-lg p-4 border border-gray-600/50">
+                                <h3 class="text-lg font-medium text-blue-400 mb-3">KKT Conditions</h3>
+                                <div class="text-gray-300 font-mono text-sm bg-gray-800/50 p-3 rounded whitespace-pre-wrap">${formatConstraintForDisplay(result.kkt_conditions)}</div>
+                            </div>
+                        `);
+                    }
                 }
-                updatePlaceholderVisibility(objectiveMathField);
-            });
+            }
             
-            // Clear form
-            clearBtn.addEventListener('click', function() {
-                objectiveMathField.latex('');
-                constraintsMathField.latex('');
-                errorMessage.classList.add('hidden');
-                solutionContainer.classList.add('hidden');
-                updatePlaceholderVisibility(objectiveMathField);
-                updatePlaceholderVisibility(constraintsMathField);
+            // Add problem details section to appear on both tabs
+            function addProblemDetails(objective, constraints, minMax) {
+                // Function removed - no longer displaying problem details
+            }
+            
+            // Live problem type detection
+            function detectProblemType() {
+                const objective = $('#objective').val();
+                const constraints = $('#constraints').val();
+                
+                if (!objective) {
+                    $('#detected-problem-type').html('<span class="font-medium">Enter an objective function to detect</span>');
+                    return;
+                }
+                
+                // Check for quadratic vs nonlinear
+                const isQuadratic = isQuadraticProblem(objective, constraints);
+                $('#detected-problem-type').html(
+                    `<span class="font-medium">${isQuadratic ? 'Quadratic Programming' : 'General Nonlinear Programming'}</span>`
+                );
+                
+                // Show/hide QP method selection
+                if (isQuadratic) {
+                    $('#qp-method-selection').removeClass('hidden');
+                    $('#quadratic-example').removeClass('hidden');
+                    $('#nonlinear-example').addClass('hidden');
+                } else {
+                    $('#qp-method-selection').addClass('hidden');
+                    $('#quadratic-example').addClass('hidden');
+                    $('#nonlinear-example').removeClass('hidden');
+                }
+            }
+            
+            // Check if the problem is quadratic
+            function isQuadraticProblem(objective, constraints) {
+                // Define what makes a problem nonlinear
+                const nonlinearFuncs = ['sin', 'cos', 'tan', 'exp', 'log', 'sqrt', 'ln'];
+                
+                // Check objective for nonlinear functions
+                if (nonlinearFuncs.some(func => objective.includes(func))) {
+                    return false;
+                }
+                
+                // Check for powers > 2
+                const powerPattern = /[a-zA-Z][a-zA-Z0-9]*\^(\d+)/g;
+                let match;
+                while ((match = powerPattern.exec(objective)) !== null) {
+                    if (parseInt(match[1]) > 2) {
+                        return false;
+                    }
+                }
+                
+                // Check constraints for nonlinear functions and high powers
+                if (constraints) {
+                    const constraintsList = constraints.split(';');
+                    for (const constraint of constraintsList) {
+                        if (nonlinearFuncs.some(func => constraint.includes(func))) {
+                            return false;
+                        }
+                        
+                        while ((match = powerPattern.exec(constraint)) !== null) {
+                            if (parseInt(match[1]) > 2) {
+                                return false;
+                            }
+                        }
+                    }
+                }
+                
+                return true;
+            }
+            
+            // Set up event listeners for live problem type detection
+            $('#objective, #constraints').on('input', detectProblemType);
+            
+            // Initial problem type detection
+            detectProblemType();
+            
+            // Clear button functionality
+            $('#clearBtn').on('click', function() {
+                objectiveEditor.latex('');  // Clear MathQuill editor
+                constraintsEditor.latex(''); // Clear MathQuill editor
+                $('#objective').val('');
+                $('#constraints').val('');
+                $('#objective-editor').removeClass('has-content');
+                $('#constraints-editor').removeClass('has-content');
+                $('#detected-problem-type').html('<span class="font-medium">Enter an objective function to detect</span>');
+                $('#qp-method-selection').addClass('hidden');
+                hideResults();
             });
             
             // Handle form submission
-            form.addEventListener('submit', async function(e) {
+            $('#nlp-form').submit(function(e) {
                 e.preventDefault();
                 
-                // Hide previous results
-                errorMessage.classList.add('hidden');
-                solutionContainer.classList.add('hidden');
+                // Ensure hidden inputs are updated with latest MathQuill content
+                let objectiveLatex = objectiveEditor.latex();
+                let constraintsLatex = constraintsEditor.latex();
                 
-                try {
-                    // Get form values
-                    const problemType = document.getElementById('problem_type').value;
-                    const minMax = document.getElementById('min_max').value;
-                    
-                    // Get objective function and constraints
-                    const objective = objectiveMathField.latex();
-                    const constraints = constraintsMathField.latex();
-                    
-                    // Validate inputs
+                $('#objective').val(convertLatexToFormula(objectiveLatex));
+                $('#constraints').val(convertLatexToFormula(constraintsLatex));
+                
+                // Show loading indicator
+                $('#loading').removeClass('hidden');
+                $('#welcome-panel').addClass('hidden');
+                $('#results-container').addClass('hidden');
+                
+                // Clear error message
+                $('#error-message').addClass('hidden');
+                
+                // Get form data
+                const objective = $('#objective').val();
+                const constraints = $('#constraints').val();
+                const minMax = $('#min_max').val();
+                const method = $('#method').val();
+                
+                // Basic validation
                     if (!objective) {
-                        throw new Error("Please enter an objective function");
-                    }
-                    
-                    if (!constraints) {
-                        throw new Error("Please enter at least one constraint.");
-                    }
-                    
-                    // Prepare data for the backend API
-                    const formData = {
-                        problem_type: problemType,
-                        min_max: minMax,
-                        objective: objective,
-                        constraints: constraints
-                    };
-                    
-                    // Show loading indicator
-                    const solveBtn = document.getElementById('solveBtn');
-                    solveBtn.disabled = true;
-                    solveBtn.innerHTML = '<div class="flex justify-center items-center gap-2"><div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div> Solving...</div>';
-                    
-                    // Send API request
-                    const response = await fetch('/nonlinear/solve/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                        },
-                        body: JSON.stringify(formData)
-                    });
-                    
-                    // Reset button state
-                    solveBtn.disabled = false;
-                    solveBtn.innerHTML = 'Solve';
-                    
-                    if (!response.ok) {
-                        throw new Error("Server error occurred. Please try again.");
-                    }
-                    
-                    const result = await response.json();
-                    
-                    if (result.error) {
-                        throw new Error(result.error);
-                    }
-                    
-                    // Display the solution
-                    displaySolution(result);
-                    
-                } catch (error) {
-                    // Show error message
-                    errorMessage.textContent = error.message;
-                    errorMessage.classList.remove('hidden');
+                    showError('Please enter an objective function');
+                    $('#loading').addClass('hidden');
+                    $('#welcome-panel').removeClass('hidden');
+                    return;
                 }
+                
+                // Prepare data
+                const data = {
+                    objective: objective,
+                    constraints: constraints,
+                    min_max: minMax,
+                    method: method,
+                    problem_type: $('#detected-problem-type').text().includes('Quadratic') ? 'quadratic' : 'nonlinear',
+                    solve_now: false // Just set up the problem, don't solve it yet
+                };
+                
+                // Make API call
+                $.ajax({
+                    url: '/nonlinear/solve/',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    headers: {
+                        'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
+                    },
+                    success: function(response) {
+                        $('#loading').addClass('hidden');
+                        
+                        // Check if we should display results immediately
+                        if (response.display_results) {
+                            showResults(response, objective, constraints, minMax);
+                        } else {
+                            $('#welcome-panel').removeClass('hidden');
+                        }
+                    },
+                    error: function(xhr) {
+                        $('#loading').addClass('hidden');
+                        $('#welcome-panel').removeClass('hidden');
+                        
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            showError(response.error || 'An error occurred');
+                        } catch (e) {
+                            showError('An unexpected error occurred');
+                        }
+                    }
+                });
             });
             
-            // Display solution results in the UI
-            function displaySolution(data) {
-                // Ensure we have all the needed properties, with defaults if missing
-                const problemData = data.problem || {};
+            // Handle the "Show Optimal Solution" button
+            $(document).on('click', '#compute-solution-btn', function() {
+                // Show loading indicator
+                $(this).html('<span class="animate-spin inline-block mr-2">⟳</span> Computing...');
+                $(this).prop('disabled', true);
                 
-                // Display problem statement
-                document.getElementById('problem-statement').innerHTML = formatProblemStatement(
-                    problemData.problemType || data.problem_type,
-                    problemData.minMax || data.min_max,
-                    problemData.objective || data.objective,
-                    problemData.constraints || data.constraints
-                );
+                // Ensure hidden inputs have the latest MathQuill values
+                let objectiveLatex = objectiveEditor.latex();
+                let constraintsLatex = constraintsEditor.latex();
                 
-                // Display solution values
-                document.getElementById('solution-values').innerHTML = formatSolutionValues(data.solution);
+                $('#objective').val(convertLatexToFormula(objectiveLatex));
+                $('#constraints').val(convertLatexToFormula(constraintsLatex));
                 
-                // Display optimal value
-                const optimalValueEl = document.getElementById('optimal-value');
-                const optimalValue = data.objectiveValue || data.optimal_value;
-                const minMax = problemData.minMax || data.min_max; 
-                optimalValueEl.textContent = `Optimal ${minMax === 'min' ? 'minimum' : 'maximum'} value: ${optimalValue}`;
+                // Get the current problem values
+                const objective = $('#objective').val();
+                const constraints = $('#constraints').val();
+                const minMax = $('#min_max').val();
+                const method = $('#method').val();
                 
-                // Display iterations if available
-                const iterationsEl = document.getElementById('iterations');
-                if (data.iterations !== undefined) {
-                    iterationsEl.textContent = `Iterations: ${data.iterations}`;
-                    iterationsEl.classList.remove('hidden');
-                } else {
-                    iterationsEl.classList.add('hidden');
-                }
+                // Prepare data for solving
+                const data = {
+                    objective: objective,
+                    constraints: constraints,
+                        min_max: minMax,
+                    method: method,
+                    problem_type: $('#detected-problem-type').text().includes('Quadratic') ? 'quadratic' : 'nonlinear',
+                    solve_now: true // This time we want to solve the problem
+                };
                 
-                // Display KKT conditions if available
-                const kktContainer = document.getElementById('kkt-container');
-                if (data.kkt_conditions || data.kktConditions) {
-                    document.getElementById('kkt-conditions').textContent = data.kkt_conditions || data.kktConditions;
-                    kktContainer.classList.remove('hidden');
-                } else {
-                    kktContainer.classList.add('hidden');
-                }
-                
-                // Show the solution container
-                solutionContainer.classList.remove('hidden');
-                
-                // Scroll to the solution
-                setTimeout(() => {
-                    solutionContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 100);
+                // Make second API call to get the solution
+                $.ajax({
+                    url: '/nonlinear/solve/',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                        headers: {
+                        'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
+                    },
+                    success: function(response) {
+                        // Update results but don't switch tabs
+                        updateResults(response, objective, constraints, minMax);
+                        
+                        // Hide the "solution not ready" panel
+                        $('#solution-not-ready').addClass('hidden');
+                        
+                        // Make sure we're on the Method & Solution tab
+                        $('#tab-steps').trigger('click');
+                    },
+                    error: function(xhr) {
+                        // Reset the button
+                        $('#compute-solution-btn').html('Show Optimal Solution');
+                        $('#compute-solution-btn').prop('disabled', false);
+                        
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            showError(response.error || 'An error occurred while computing the solution');
+                        } catch (e) {
+                            showError('An unexpected error occurred while computing the solution');
+                        }
+                    }
+                });
+            });
+            
+            // Function to show error message
+            function showError(message) {
+                $('#error-message').html(message).removeClass('hidden');
+                setTimeout(function() {
+                    $('#error-message').addClass('hidden');
+                }, 5000);
             }
             
-            // Format problem statement for display
-            function formatProblemStatement(problemType, minMax, objective, constraints) {
-                const operation = minMax === 'min' ? 'Minimize' : 'Maximize';
-                const problemDescription = problemType === 'quadratic' ? 'Quadratic Programming' : 'Nonlinear Programming';
+            // Function to hide results
+            function hideResults() {
+                $('#results-container').addClass('hidden');
+                $('#welcome-panel').removeClass('hidden');
+            }
+            
+            // Function to show results
+            function showResults(result, objective, constraints, minMax) {
+                // Hide welcome panel, show results
+                $('#welcome-panel').addClass('hidden');
+                $('#results-container').removeClass('hidden');
                 
-                let html = `<div class="mb-2 font-semibold">${operation} the following ${problemDescription} problem:</div>`;
-                html += `<div class="mb-2">Objective function: ${objective || 'Not specified'}</div>`;
-                html += `<div>Subject to:</div>`;
-                html += `<ul class="list-disc pl-5 space-y-1">`;
+                // Update all the result data without switching tabs
+                updateResults(result, objective, constraints, minMax);
                 
-                // Check if constraints exist before attempting to split
-                // Convert constraints to string and ensure it's valid for splitting
-                if (constraints) {
-                    // Ensure constraints is a string
-                    const constraintsStr = String(constraints);
-                    
-                    // Check if the string contains semicolons
-                    if (constraintsStr.includes(';')) {
-                        // Split by semicolon and format each constraint
-                        constraintsStr.split(';').forEach(constraint => {
-                            const trimmed = constraint.trim();
-                            if (trimmed) {
-                                html += `<li class="constraint-row">${trimmed}</li>`;
-                            }
+                // Show/hide solution panels based on whether solution is ready
+                if (result.solution_ready === true) {
+                    $('#solution-not-ready').addClass('hidden');
+                } else {
+                    $('#solution-not-ready').removeClass('hidden');
+                    // Reset the compute solution button in case it was disabled
+                    $('#compute-solution-btn').html('Show Optimal Solution');
+                    $('#compute-solution-btn').prop('disabled', false);
+                }
+                
+                // Show KKT tab by default
+                $('#tab-kkt').trigger('click');
+            }
+
+            // Function to update results without switching tabs
+            function updateResults(result, objective, constraints, minMax) {
+                // Store current result for toggle functionality
+                window.currentResult = result;
+                window.currentObjective = objective;
+                window.currentConstraints = constraints;
+                window.currentMinMax = minMax;
+                
+                // Handle different solution states
+                if (result.error) {
+                    showError(result.error);
+                    return;
+                }
+                
+                // Update tab content
+                
+                // Display method explanation if available
+                if (result.method_explanation) {
+                    $('#method-steps').empty();
+                    const explanationHtml = `
+                        <div class="bg-gray-700/30 rounded-lg p-4 border border-gray-600/50 mb-4">
+                            <h3 class="text-lg font-medium text-blue-400 mb-3">Method Description</h3>
+                            <div class="space-y-2">
+                                ${result.method_explanation.map(text => `<p class="text-gray-300">${text}</p>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                    $('#method-steps').append(explanationHtml);
+                }
+                
+                // Display initial tableau if available
+                if (result.initial_tableau) {
+                    const tableau = result.initial_tableau;
+                    const tableauHtml = `
+                        <div class="bg-gray-700/30 rounded-lg p-4 border border-gray-600/50">
+                            <h3 class="text-lg font-medium text-blue-400 mb-3">${tableau.title}</h3>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full bg-gray-800/50 rounded">
+                                    <thead>
+                                        <tr>
+                                            ${tableau.header.map(h => `<th class="py-2 px-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">${h}</th>`).join('')}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${tableau.rows.map(row => `
+                                            <tr class="border-t border-gray-700/50">
+                                                ${row.map(cell => `<td class="py-2 px-3 text-sm text-gray-300">${cell}</td>`).join('')}
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                    $('#method-steps').append(tableauHtml);
+                }
+                
+                // Process optimal solution
+                // Clear variables
+                $('#solution-variables').empty();
+                
+                // Add each variable - support both formats
+                const variables = result.variables || result.solution || {};
+                if (Object.keys(variables).length > 0) {
+                    for (const [variable, value] of Object.entries(variables)) {
+                        $('#solution-variables').append(`
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">${variable} =</span>
+                                <span class="font-medium">${parseFloat(value).toFixed(4)}</span>
+                            </div>
+                        `);
+                    }
+                }
+                
+                // Set objective value - support both formats
+                const objValue = result.objective_value !== undefined ? result.objective_value : 
+                                (result.optimal_value !== undefined ? result.optimal_value : 'N/A');
+                $('#objective-value').text(typeof objValue === 'number' ? objValue.toFixed(4) : objValue);
+                
+                // Set iterations
+                $('#iterations').text(result.iterations !== undefined ? result.iterations : 'N/A');
+                
+                // Set problem type
+                let problemTypeText = (result.auto_detected_type || result.problem_type) === 'quadratic' ? 
+                                'Quadratic Programming' : 'General Nonlinear Programming';
+                $('#problem-type').text(problemTypeText);
+                
+                // Set method name
+                let methodText = 'Numerical Optimization';
+                if (result.method === 'wolfe') {
+                    methodText = 'Wolfe\'s Method';
+                } else if (result.method === 'beale') {
+                    methodText = 'Beale\'s Method';
+                } else if (result.method === 'cvxpy') {
+                    methodText = 'CVXPY Solver';
+                } else if ((result.auto_detected_type || result.problem_type) === 'quadratic') {
+                    methodText = 'Quadratic Programming Solver';
+                }
+                $('#solution-method').text(methodText);
+                
+                // Set KKT conditions
+                $('#kkt-conditions').empty();
+                if (result.kkt_conditions) {
+                    if (Array.isArray(result.kkt_conditions) && typeof result.kkt_conditions[0] === 'object') {
+                        // New format with sections
+                        result.kkt_conditions.forEach(function(section) {
+                            const sectionHtml = `
+                                <div class="bg-gray-700/30 rounded-lg p-4 border border-gray-600/50 mb-4">
+                                    <h3 class="text-lg font-medium text-blue-400 mb-3">${section.title}</h3>
+                                    <div class="space-y-2">
+                                        ${section.conditions.map(cond => `<div class="text-gray-300 font-mono text-sm bg-gray-800/50 p-2 rounded">${formatConstraintForDisplay(cond)}</div>`).join('')}
+                                    </div>
+                                </div>
+                            `;
+                            $('#kkt-conditions').append(sectionHtml);
                         });
                     } else {
-                        // If no semicolons, treat the whole string as one constraint
-                        html += `<li class="constraint-row">${constraintsStr.trim()}</li>`;
+                        // Old format as a string
+                        $('#kkt-conditions').append(`
+                            <div class="bg-gray-700/30 rounded-lg p-4 border border-gray-600/50">
+                                <h3 class="text-lg font-medium text-blue-400 mb-3">KKT Conditions</h3>
+                                <div class="text-gray-300 font-mono text-sm bg-gray-800/50 p-3 rounded whitespace-pre-wrap">${formatConstraintForDisplay(result.kkt_conditions)}</div>
+                            </div>
+                        `);
                     }
                 } else {
-                    // Handle case where constraints is undefined
-                    html += `<li class="constraint-row">No constraints available</li>`;
+                    $('#kkt-conditions').append('<p class="text-gray-400 italic">No KKT conditions available</p>');
                 }
                 
-                html += `</ul>`;
-                return html;
-            }
-            
-            // Format solution values for display
-            function formatSolutionValues(solution) {
-                if (!solution || Object.keys(solution).length === 0) {
-                    return "No solution found.";
+                // Add MathJax rendering if needed
+                if (window.MathJax) {
+                    MathJax.typeset();
                 }
-                
-                let html = `<div class="mb-2 font-semibold">Optimal solution:</div>`;
-                html += `<ul class="list-disc pl-5 space-y-1">`;
-                
-                // Format each variable value
-                Object.entries(solution).forEach(([variable, value]) => {
-                    html += `<li>${variable} = ${value}</li>`;
-                });
-                
-                html += `</ul>`;
-                return html;
             }
+
+            // Force redraw MathQuill editors to ensure proper rendering
+            setTimeout(function() {
+                objectiveEditor.reflow();
+                constraintsEditor.reflow();
+                
+                // Initialize with empty content
+                objectiveEditor.latex('');
+                constraintsEditor.latex('');
+                
+                // Make sure placeholders are visible
+                $('#objective-editor').removeClass('has-content');
+                $('#constraints-editor').removeClass('has-content');
+            }, 100);
         });
     </script>
 </body>

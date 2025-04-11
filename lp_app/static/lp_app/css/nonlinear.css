@@ -19,8 +19,8 @@
     border: 1px solid rgba(75, 85, 99, 0.5);
     cursor: pointer;
     z-index: 50;
-    opacity: 0;
-    transform: translateX(-3rem);
+    opacity: 1;
+    transform: translateX(0);
     transition: all 0.3s ease;
 }
 
@@ -207,20 +207,20 @@ select option {
 
 /* Main Container and Button Animations */
 #mainContainer {
-    opacity: 0;
+    opacity: 1;
     transition: opacity 0.3s ease;
 }
 
 .form-group {
-    opacity: 0;
-    transform: translateY(1.25rem);
+    opacity: 1;
+    transform: translateY(0);
     transition: all 0.3s ease;
 }
 
 #solveBtn, 
 #clearBtn {
-    opacity: 0;
-    transform: translateY(1.25rem);
+    opacity: 1;
+    transform: translateY(0);
     transition: all 0.3s ease;
 }
 
@@ -312,4 +312,74 @@ input:focus, select:focus {
     top: -0.7em !important;
     margin-left: -0.1em !important;
     margin-right: 0 !important;
+}
+
+/* Tabs styling */
+.tab-button {
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.tab-button:hover {
+    color: #f7fafc !important;
+}
+
+.tab-button:focus {
+    outline: none;
+}
+
+/* Results panels */
+#results-panel {
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Problem type detection */
+#detected-problem-type {
+    transition: all 0.3s ease;
+}
+
+/* Loading animation */
+#loading .animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Solution variables */
+#solution-variables {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Method steps tables */
+#method-steps table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+#method-steps th, #method-steps td {
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+}
+
+#method-steps th {
+    background-color: rgba(55, 65, 81, 0.6);
+    font-weight: 500;
+}
+
+#method-steps tr:hover td {
+    background-color: rgba(55, 65, 81, 0.4);
+}
+
+/* KKT conditions */
+#kkt-conditions .bg-gray-800\/50 {
+    overflow-x: auto;
 } 
