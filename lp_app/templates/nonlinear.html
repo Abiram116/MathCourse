@@ -72,6 +72,112 @@
         .feature-list li:hover {
             transform: translateX(5px);
         }
+
+        /* Update KKT conditions styles */
+        .kkt-title {
+            font-family: 'Arial', sans-serif;
+            color: rgb(96, 165, 250);  /* blue-400 */
+            font-size: 1.75rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+        }
+
+        .kkt-description {
+            font-family: 'Arial', sans-serif;
+            color: rgb(209, 213, 219);
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .kkt-section {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: rgba(17, 24, 39, 0.4);
+            border: 1px solid rgba(75, 85, 99, 0.4);
+            border-radius: 0.75rem;
+        }
+
+        .kkt-section-title {
+            font-family: 'Arial', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            color: rgb(156, 163, 175);
+        }
+
+        .kkt-explanation {
+            color: rgb(156, 163, 175);
+            font-size: 0.95rem;
+            margin: 0.75rem 0;
+            line-height: 1.5;
+            font-style: italic;
+        }
+
+        .kkt-subtitle {
+            font-family: 'Arial', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-top: 1.25rem;
+            margin-bottom: 0.75rem;
+            color: rgb(156, 163, 175);  /* gray-400 */
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .kkt-subtitle .math {
+            color: rgb(209, 213, 219);  /* gray-300 */
+        }
+
+        .general-form .kkt-section-title {
+            color: rgb(96, 165, 250);  /* blue-400 */
+        }
+
+        .problem-specific .kkt-section-title {
+            color: rgb(16, 185, 129);  /* green-500 */
+        }
+
+        .kkt-inline-container {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+            padding: 0.25rem 0;
+            margin: 0.5rem 0;
+        }
+
+        .kkt-inline-text {
+            font-family: 'Arial', sans-serif;
+            color: rgb(209, 213, 219);
+            display: inline;
+            white-space: pre-wrap;
+        }
+
+        .kkt-inline-math {
+            font-family: 'Computer Modern', serif;
+            display: inline;
+            vertical-align: middle;
+        }
+
+        .kkt-block-math {
+            display: block;
+            margin: 1rem 0;
+        }
+
+        .kkt-text {
+            color: rgb(209, 213, 219);
+            margin: 0.75rem 0;
+            line-height: 1.5;
+        }
+
+        .kkt-math {
+            margin: 1rem 0;
+        }
+
+        /* Remove background and border from sections */
+        #content-kkt {
+            padding: 1.5rem;
+        }
     </style>
 
     <script>
@@ -199,11 +305,11 @@
                 </div>
 
                         <!-- KKT Conditions Tab Content -->
-                        <div id="content-kkt" class="tab-content p-6">
-                            <div class="mb-6">
-                                <h2 class="text-xl font-semibold mb-2 text-green-400">Karush-Kuhn-Tucker (KKT) Conditions</h2>
-                                <p class="text-gray-300 mb-4">These are the necessary conditions for optimality in constrained optimization problems.</p>
-                                <div id="kkt-conditions" class="space-y-4">
+                        <div id="content-kkt" class="tab-content">
+                            <div class="kkt-conditions-container">
+                                <h2 class="kkt-title">Karush-Kuhn-Tucker (KKT) Conditions</h2>
+                                <p class="kkt-description">These are the necessary conditions for optimality in constrained optimization problems.</p>
+                                <div id="kkt-conditions" class="space-y-3">
                                     <!-- KKT conditions will be inserted here -->
                                 </div>
                             </div>
@@ -547,35 +653,127 @@
             
             // Convert to LaTeX format for MathJax
             return constraint
+                .replace(/\$/g, '')  // Remove existing $ signs
                 .replace(/<=/g, '\\leq')
                 .replace(/>=/g, '\\geq')
                 .replace(/==/g, '=')
                 .replace(/\*/g, '\\cdot')
                 .replace(/\^(\d+)/g, '^{$1}')
                 .replace(/sqrt\(([^)]+)\)/g, '\\sqrt{$1}')
-                .replace(/(\d+)([a-zA-Z])/g, '$1\\cdot $2');
+                .replace(/(\d+)([a-zA-Z])/g, '$1\\cdot $2')
+                .replace(/where/g, '\\text{where}')  // Format text within math mode
+                .replace(/Inequality constraints/g, '\\text{Inequality constraints}');
         }
 
-        // Function to update KKT display based on current toggle state
+        // Add this helper function to determine if content should be inline
+        function shouldBeInline(content) {
+            // These patterns suggest the content should be part of an inline flow
+            const inlinePatterns = [
+                'where',
+                'either:',
+                'or',
+                ', ',
+                'constraints',
+                'active',
+                'zero'
+            ];
+            return inlinePatterns.some(pattern => content.includes(pattern));
+        }
+
+        // Update the KKT display function
         function updateKKTDisplay() {
-            // Re-render KKT conditions with current notation setting
             if (window.currentResult && window.currentResult.kkt_conditions) {
                 const result = window.currentResult;
                 $('#kkt-conditions').empty();
                 
                 if (Array.isArray(result.kkt_conditions) && typeof result.kkt_conditions[0] === 'object') {
-                    // New format with sections
                     result.kkt_conditions.forEach(function(section) {
+                        const processedConditions = section.conditions.map(cond => {
+                            if (typeof cond === 'string') {
+                                // Handle old format
+                                return `<div class="kkt-text">${cond}</div>`;
+                            }
+                            
+                            switch(cond.type) {
+                                case 'inline_group':
+                                    return `<div class="kkt-inline-container">${
+                                        cond.content.map(item => 
+                                            item.type === 'text' ?
+                                                `<span class="kkt-inline-text">${item.content}</span>` :
+                                                `<span class="kkt-inline-math">\\(${item.content}\\)</span>`
+                                        ).join('')
+                                    }</div>`;
+                                case 'text':
+                                    return `<div class="kkt-text">${cond.content}</div>`;
+                                case 'subtitle':
+                                    return `<div class="kkt-subtitle">
+                                        ${cond.content} <span class="math">\\(${cond.math}\\)</span>
+                                    </div>`;
+                                case 'math':
+                                    const sectionClass = cond.title && cond.title.includes('General') ? 'general-form' : 
+                                                      (cond.title && cond.title.includes('Problem-Specific') ? 'problem-specific' : '');
+                                    
+                                    if (cond.title) {
+                                        return `<div class="kkt-section ${sectionClass}">
+                                            <h4 class="kkt-section-title">${cond.title}</h4>
+                                            <div class="kkt-math">\\[${cond.content}\\]</div>
+                                        </div>`;
+                                    } else if (cond.content.includes('\\rightarrow') || cond.content.includes('=') || 
+                                        cond.content.length > 50) {
+                                        return `<div class="kkt-math">\\[${cond.content}\\]</div>`;
+                                    } else {
+                                        return `<div class="kkt-condition-line">
+                                            <span class="kkt-inline-math">\\(${cond.content}\\)</span>
+                                        </div>`;
+                                    }
+                                default:
+                                    return '';
+                            }
+                        });
+
+                        // Update the KKT conditions sections with explanations
+                        if (section.title === "Stationarity Conditions") {
+                            section.explanation = "These conditions ensure we are at a critical point where the gradient of the Lagrangian is zero, indicating a potential optimal solution.";
+                        } else if (section.title === "Primal Feasibility") {
+                            section.explanation = "These conditions verify that our solution satisfies all the original constraints of the optimization problem.";
+                        } else if (section.title === "Dual Feasibility") {
+                            section.explanation = "These conditions ensure the Lagrange multipliers for inequality constraints are non-negative, maintaining the proper direction of the inequalities.";
+                        } else if (section.title === "Complementary Slackness") {
+                            section.explanation = "These conditions establish that either a constraint is active (equality holds) or its corresponding Lagrange multiplier is zero.";
+                        }
+
                         const sectionHtml = `
-                            <div class="bg-gray-700/30 rounded-lg p-4 border border-gray-600/50 mb-4">
-                                <h3 class="text-lg font-medium text-blue-400 mb-3">${section.title}</h3>
-                                <div class="space-y-2">
-                                    ${section.conditions.map(cond => `
-                                        <div class="text-gray-300 font-mono text-sm bg-gray-800/50 p-2 rounded">
-                                            $${formatConstraintForDisplay(cond)}$
-                                        </div>
-                                    `).join('')}
-                                </div>
+                            <div class="kkt-section ${sectionClass}">
+                                <h3 class="kkt-section-title">${section.title}</h3>
+                                ${section.explanation ? `<p class="kkt-explanation">${section.explanation}</p>` : ''}
+                                ${section.conditions.map(cond => {
+                                    if (cond.type === 'text') {
+                                        return `<div class="kkt-text">${cond.content}</div>`;
+                                    } else if (cond.type === 'subtitle') {
+                                        return `<div class="kkt-subtitle">
+                                            ${cond.content} <span class="math">\\(${cond.math}\\)</span>
+                                        </div>`;
+                                    } else if (cond.type === 'math') {
+                                        if (cond.title) {
+                                            return `<div class="kkt-math">\\[${cond.content}\\]</div>`;
+                                        } else if (cond.content.includes('\\rightarrow') || cond.content.includes('=') || 
+                                            cond.content.length > 50) {
+                                            return `<div class="kkt-math">\\[${cond.content}\\]</div>`;
+                                        } else {
+                                            return `<div class="kkt-condition-line">
+                                                <span class="kkt-inline-math">\\(${cond.content}\\)</span>
+                                            </div>`;
+                                        }
+                                    } else if (cond.type === 'inline_group') {
+                                        return `<div class="kkt-inline-container">
+                                            ${cond.content.map(item => 
+                                                item.type === 'text' ?
+                                                    `<span class="kkt-inline-text">${item.content}</span>` :
+                                                    `<span class="kkt-inline-math">\\(${item.content}\\)</span>`
+                                            ).join('')}
+                                        </div>`;
+                                    }
+                                }).join('')}
                             </div>
                         `;
                         $('#kkt-conditions').append(sectionHtml);
@@ -583,11 +781,9 @@
                 } else {
                     // Old format as a string
                     $('#kkt-conditions').append(`
-                        <div class="bg-gray-700/30 rounded-lg p-4 border border-gray-600/50">
-                            <h3 class="text-lg font-medium text-blue-400 mb-3">KKT Conditions</h3>
-                            <div class="text-gray-300 font-mono text-sm bg-gray-800/50 p-3 rounded whitespace-pre-wrap">
-                                $${formatConstraintForDisplay(result.kkt_conditions)}$
-                            </div>
+                        <div class="kkt-section">
+                            <h3 class="kkt-section-title">KKT Conditions</h3>
+                            <div class="kkt-block-math">\\[${formatConstraintForDisplay(result.kkt_conditions)}\\]</div>
                         </div>
                     `);
                 }
@@ -1153,15 +1349,43 @@
                     // New format with sections
                     result.kkt_conditions.forEach(function(section) {
                         const sectionHtml = `
-                            <div class="bg-gray-700/30 rounded-lg p-4 border border-gray-600/50 mb-4">
-                                <h3 class="text-lg font-medium text-blue-400 mb-3">${section.title}</h3>
-                                <div class="space-y-2">
-                                    ${section.conditions.map(cond => `
-                                        <div class="text-gray-300 font-mono text-sm bg-gray-800/50 p-2 rounded">
-                                            $${formatConstraintForDisplay(cond)}$
-                                        </div>
-                                    `).join('')}
-                                </div>
+                            <div class="kkt-section">
+                                <h3 class="kkt-section-title">${section.title}</h3>
+                                ${section.conditions.map(cond => {
+                                    if (typeof cond === 'string') {
+                                        // Handle old format for backwards compatibility
+                                        const isDescription = !cond.includes('=') && !cond.includes('≤') && !cond.includes('≥');
+                                        return isDescription ? 
+                                            `<div class="kkt-text">${cond}</div>` :
+                                            `<div class="kkt-math">\\[${formatConstraintForDisplay(cond)}\\]</div>`;
+                                    } else {
+                                        // Handle new format with type information
+                                        if (cond.type === 'text') {
+                                            return `<div class="kkt-text">${cond.content}</div>`;
+                                        } else if (cond.type === 'subtitle') {
+                                            return `<div class="kkt-subtitle">
+                                                ${cond.content} <span class="math">\\(${cond.math}\\)</span>
+                                            </div>`;
+                                        } else if (cond.type === 'math') {
+                                            const sectionClass = cond.title && cond.title.includes('General') ? 'general-form' : 
+                                                              (cond.title && cond.title.includes('Problem-Specific') ? 'problem-specific' : '');
+                                            
+                                            if (cond.title) {
+                                                return `<div class="kkt-section ${sectionClass}">
+                                                    <h4 class="kkt-section-title">${cond.title}</h4>
+                                                    <div class="kkt-math">\\[${cond.content}\\]</div>
+                                                </div>`;
+                                            } else if (cond.content.includes('\\rightarrow') || cond.content.includes('=') || 
+                                                cond.content.length > 50) {
+                                                return `<div class="kkt-math">\\[${cond.content}\\]</div>`;
+                                            } else {
+                                                return `<div class="kkt-condition-line">
+                                                    <span class="kkt-inline-math">\\(${cond.content}\\)</span>
+                                                </div>`;
+                                            }
+                                        }
+                                    }
+                                }).join('')}
                             </div>
                         `;
                         $('#kkt-conditions').append(sectionHtml);
@@ -1169,11 +1393,9 @@
                 } else {
                     // Old format as a string
                     $('#kkt-conditions').append(`
-                        <div class="bg-gray-700/30 rounded-lg p-4 border border-gray-600/50">
-                            <h3 class="text-lg font-medium text-blue-400 mb-3">KKT Conditions</h3>
-                            <div class="text-gray-300 font-mono text-sm bg-gray-800/50 p-3 rounded whitespace-pre-wrap">
-                                $${formatConstraintForDisplay(result.kkt_conditions)}$
-                            </div>
+                        <div class="kkt-section">
+                            <h3 class="kkt-section-title">KKT Conditions</h3>
+                            <div class="kkt-math">\\[${formatConstraintForDisplay(result.kkt_conditions)}\\]</div>
                         </div>
                     `);
                 }

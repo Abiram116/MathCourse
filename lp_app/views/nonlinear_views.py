@@ -583,7 +583,8 @@ def generate_kkt_conditions(objective_expr, constraints_list, min_max='min'):
         # Parse constraints
         inequality_constraints = []  # g_i(x) ≤ 0
         equality_constraints = []   # h_j(x) = 0
-        constraint_expr_map = {}  # Store original expressions
+        constraint_expr_map = {}
+        user_provided_constraints = []  # Track which constraints were provided by user
         
         for constraint in constraints_list:
             try:
@@ -614,6 +615,7 @@ def generate_kkt_conditions(objective_expr, constraints_list, min_max='min'):
                         inequality_expr = expr_sympy - value
                         inequality_constraints.append(inequality_expr)
                         constraint_expr_map[str(inequality_expr)] = f"{expr} ≥ {value}"
+                        user_provided_constraints.append(str(inequality_expr))  # Track as user provided
                     except Exception as e:
                         logger.exception(f"Error processing constraint: {constraint}")
                         return [{'title': 'Error generating KKT conditions', 
@@ -645,6 +647,7 @@ def generate_kkt_conditions(objective_expr, constraints_list, min_max='min'):
                         inequality_expr = expr_sympy - value
                         inequality_constraints.append(inequality_expr)
                         constraint_expr_map[str(inequality_expr)] = f"{expr} ≤ {value}"
+                        user_provided_constraints.append(str(inequality_expr))  # Track as user provided
                     except Exception as e:
                         logger.exception(f"Error processing constraint: {constraint}")
                         return [{'title': 'Error generating KKT conditions', 
@@ -709,114 +712,208 @@ def generate_kkt_conditions(objective_expr, constraints_list, min_max='min'):
         kkt_conditions = []
         
         # Intro - Lagrangian function definition
-        lagrangian_intro = [
-            "𝐿(x, λ, μ) = f(x) - ∑λᵢgᵢ(x) + ∑μⱼhⱼ(x)",
-            "",
-            f"where f(x) = {sp.latex(obj_sympy)}"
-        ]
+        lagrangian_intro = [{
+            "title": "General Form of Lagrangian Function",
+            "type": "math",
+            "content": "L(x, \\lambda, \\mu) = f(x) - \\sum\\lambda_ig_i(x) + \\sum\\mu_jh_j(x)"
+        }, {
+            "type": "inline_group",
+            "content": [
+                {"type": "text", "content": "where "},
+                {"type": "math", "content": f"f(x) = {sp.latex(obj_sympy)}"}
+            ]
+        }]
+
+        # Add the full Lagrangian function for this specific problem
+        full_lagrangian = []
+        try:
+            # Convert the symbolic Lagrangian to LaTeX
+            latex_lagrangian = sp.latex(lagrangian)
+            full_lagrangian.append({
+                "title": "Problem-Specific Lagrangian Function",
+                "type": "math",
+                "content": f"L(x, \\lambda) = {latex_lagrangian}"
+            })
+
+            # Add constraint subtitles right after the Lagrangian
+            if inequality_constraints:
+                full_lagrangian.append({
+                    "type": "subtitle",
+                    "content": "Inequality Constraints",
+                    "math": "g_i(x) \\leq 0"
+                })
+            if equality_constraints:
+                full_lagrangian.append({
+                    "type": "subtitle",
+                    "content": "Equality Constraints",
+                    "math": "h_j(x) = 0"
+                })
+        except Exception as e:
+            logger.exception(f"Error formatting full Lagrangian: {str(e)}")
+            full_lagrangian.append({
+                "type": "text",
+                "content": f"Error formatting full Lagrangian: {str(e)}"
+            })
+        
+        lagrangian_intro.extend(full_lagrangian)
         
         # Add constraint definitions
         if inequality_constraints:
-            lagrangian_intro.append("")
-            lagrangian_intro.append("Inequality constraints (gᵢ(x) ≤ 0):")
+            # Only show the constraints that were actually provided by the user
             for i, g in enumerate(inequality_constraints):
                 try:
                     original = constraint_expr_map.get(str(g), f"g_{i+1}(x)")
-                    lagrangian_intro.append(f"g_{i+1}(x): {original} → {sp.latex(g)} ≤ 0")
+                    # Debug logging
+                    logger.debug(f"Processing constraint: {original}")
+                    logger.debug(f"Constraints list: {constraints_list}")
+                    
+                    # Normalize constraints for comparison
+                    normalized_original = re.sub(r'\s+', '', original)
+                    normalized_constraints = [re.sub(r'\s+', '', c) for c in constraints_list]
+                    
+                    logger.debug(f"Normalized original: {normalized_original}")
+                    logger.debug(f"Normalized constraints: {normalized_constraints}")
+                    
+                    # Only show the constraint if it was provided by the user
+                    if any(normalized_original.startswith(nc) or nc.startswith(normalized_original) 
+                          for nc in normalized_constraints):
+                        lagrangian_intro.append({
+                            "type": "math",
+                            "content": f"g_{i+1}(x): {original} \\rightarrow {sp.latex(g)} \\leq 0"
+                        })
                 except Exception as e:
-                    lagrangian_intro.append(f"g_{i+1}(x): Error rendering constraint: {str(e)}")
-        
-        if equality_constraints:
-            lagrangian_intro.append("")
-            lagrangian_intro.append("Equality constraints (hⱼ(x) = 0):")
-            for i, h in enumerate(equality_constraints):
-                try:
-                    original = constraint_expr_map.get(str(h), f"h_{i+1}(x)")
-                    lagrangian_intro.append(f"h_{i+1}(x): {original} → {sp.latex(h)} = 0")
-                except Exception as e:
-                    lagrangian_intro.append(f"h_{i+1}(x): Error rendering constraint: {str(e)}")
-        
+                    logger.warning(f"Error rendering constraint: {str(e)}")
+
         kkt_conditions.append({
-            'title': 'Lagrangian Function',
-            'conditions': lagrangian_intro
+            "title": "Lagrangian Function",
+            "conditions": lagrangian_intro
         })
         
-        # 1. Stationarity: ∇f(x) + ∑λᵢ∇gᵢ(x) + ∑μⱼ∇hⱼ(x) = 0
-        stationarity_conditions = ["∇L(x*) = 0, or equivalently:"]
+        # Stationarity conditions - only for variables that appear in objective or constraints
+        stationarity_conditions = [{
+            "type": "text",
+            "content": "The gradient of the Lagrangian must be zero at the optimal point:"
+        }, {
+            "type": "inline_group",
+            "content": [
+                {"type": "math", "content": "\\nabla L(x^*) = 0"},
+                {"type": "text", "content": ", or equivalently:"}
+            ]
+        }]
         
-        # Calculate gradient of Lagrangian for each variable
-        for var, sym in symbols.items():
+        # Only show derivatives for variables that appear in the problem
+        used_variables = set()
+        # Check objective function
+        for var in variables:
+            if var in objective_expr:
+                used_variables.add(var)
+        # Check constraints
+        for constraint in constraints_list:
+            for var in variables:
+                if var in constraint:
+                    used_variables.add(var)
+        
+        # Sort variables for consistent display
+        for var in sorted(used_variables):
             try:
-                gradient = sp.diff(lagrangian, sym)
-                stationarity_conditions.append(f"∂L/∂{var} = {sp.latex(gradient)} = 0")
+                gradient = sp.diff(lagrangian, symbols[var])
+                stationarity_conditions.append({
+                    "type": "math",
+                    "content": f"\\frac{{\\partial L}}{{\\partial {var}}} = {sp.latex(gradient)} = 0"
+                })
             except Exception as e:
-                logger.exception(f"Error calculating gradient for {var}: {str(e)}")
-                stationarity_conditions.append(f"∂L/∂{var} = Error: {str(e)}")
+                logger.warning(f"Error calculating gradient for {var}: {str(e)}")
         
         kkt_conditions.append({
-            'title': '✅ Stationarity Conditions',
-            'conditions': stationarity_conditions
+            "title": "Stationarity Conditions",
+            "conditions": stationarity_conditions
         })
         
-        # 2. Primal Feasibility
-        primal_conditions = ["Solution must satisfy all original constraints:"]
+        # Primal Feasibility - only show user's constraints
+        primal_conditions = [{
+            "type": "text",
+            "content": "All original constraints must be satisfied at the optimal solution:"
+        }]
         
-        # Inequality constraints
         if inequality_constraints:
-            primal_conditions.append("")
-            primal_conditions.append("Inequality constraints:")
             for i, g in enumerate(inequality_constraints):
                 try:
-                    primal_conditions.append(f"g_{i+1}(x) = {sp.latex(g)} ≤ 0")
+                    original = constraint_expr_map.get(str(g), f"g_{i+1}(x)")
+                    normalized_original = re.sub(r'\s+', '', original)
+                    normalized_constraints = [re.sub(r'\s+', '', c) for c in constraints_list]
+                    
+                    # Only show the constraint if it was provided by the user
+                    if any(normalized_original.startswith(nc) or nc.startswith(normalized_original) 
+                          for nc in normalized_constraints):
+                        primal_conditions.append({
+                            "type": "math",
+                            "content": f"g_{i+1}(x) = {sp.latex(g)} \\leq 0"
+                        })
                 except Exception as e:
-                    primal_conditions.append(f"g_{i+1}(x) = Error: {str(e)}")
+                    logger.warning(f"Error: {str(e)}")
         
-        # Equality constraints
-        if equality_constraints:
-            primal_conditions.append("")
-            primal_conditions.append("Equality constraints:")
-            for i, h in enumerate(equality_constraints):
+        kkt_conditions.append({
+            "title": "Primal Feasibility",
+            "conditions": primal_conditions
+        })
+        
+        # Dual Feasibility - only for user-provided inequality constraints
+        if inequality_constraints:
+            dual_conditions = [{
+                "type": "text",
+                "content": "Lagrange multipliers for inequality constraints must be non-negative to maintain the direction of inequalities:"
+            }]
+            
+            # Show multipliers only for user-provided constraints
+            for i, g in enumerate(inequality_constraints):
                 try:
-                    primal_conditions.append(f"h_{i+1}(x) = {sp.latex(h)} = 0")
+                    original = constraint_expr_map.get(str(g), f"g_{i+1}(x)")
+                    normalized_original = re.sub(r'\s+', '', original)
+                    normalized_constraints = [re.sub(r'\s+', '', c) for c in constraints_list]
+                    
+                    if any(normalized_original.startswith(nc) or nc.startswith(normalized_original) 
+                          for nc in normalized_constraints):
+                        dual_conditions.append({
+                            "type": "math",
+                            "content": f"{sp.latex(lambda_symbols[i])} \\geq 0"
+                        })
                 except Exception as e:
-                    primal_conditions.append(f"h_{i+1}(x) = Error: {str(e)}")
+                    logger.warning(f"Error: {str(e)}")
+            
+            if len(dual_conditions) > 1:  # Only add if there are actual conditions
+                kkt_conditions.append({
+                    "title": "Dual Feasibility",
+                    "conditions": dual_conditions
+                })
         
-        kkt_conditions.append({
-            'title': '✅ Primal Feasibility',
-            'conditions': primal_conditions
-        })
-        
-        # 3. Dual Feasibility: λᵢ ≥ 0 for all i
-        dual_conditions = ["Lagrange multipliers for inequality constraints must be non-negative:"]
-        
-        for i, lambda_sym in enumerate(lambda_symbols):
-            try:
-                dual_conditions.append(f"{sp.latex(lambda_sym)} ≥ 0")
-            except Exception as e:
-                dual_conditions.append(f"λ_{i+1} ≥ 0 (Error: {str(e)})")
-        
-        kkt_conditions.append({
-            'title': '✅ Dual Feasibility',
-            'conditions': dual_conditions
-        })
-        
-        # 4. Complementary Slackness: λᵢ * gᵢ(x) = 0 for all i
-        comp_slackness = [
-            "For each inequality constraint gᵢ(x) ≤ 0, either:",
-            "• The constraint is active (gᵢ(x) = 0), or",
-            "• Its corresponding Lagrange multiplier is zero (λᵢ = 0)"
-        ]
-        
-        for i, (g, lambda_sym) in enumerate(zip(inequality_constraints, lambda_symbols)):
-            try:
-                comp_slackness.append(f"{sp.latex(lambda_sym)} · {sp.latex(g)} = 0")
-            except Exception as e:
-                comp_slackness.append(f"λ_{i+1} · g_{i+1}(x) = 0 (Error: {str(e)})")
-        
-        kkt_conditions.append({
-            'title': '✅ Complementary Slackness',
-            'conditions': comp_slackness
-        })
+        # Complementary Slackness - only for user-provided inequality constraints
+        if inequality_constraints:
+            comp_slackness = [{
+                "type": "text",
+                "content": "For each inequality constraint, either the constraint is binding (active) or its Lagrange multiplier is zero, but not both:"
+            }]
+            
+            # Show complementary slackness only for user-provided constraints
+            for i, (g, lambda_sym) in enumerate(zip(inequality_constraints, lambda_symbols)):
+                try:
+                    original = constraint_expr_map.get(str(g), f"g_{i+1}(x)")
+                    normalized_original = re.sub(r'\s+', '', original)
+                    normalized_constraints = [re.sub(r'\s+', '', c) for c in constraints_list]
+                    
+                    if any(normalized_original.startswith(nc) or nc.startswith(normalized_original) 
+                          for nc in normalized_constraints):
+                        comp_slackness.append({
+                            "type": "math",
+                            "content": f"{sp.latex(lambda_sym)} \\cdot {sp.latex(g)} = 0"
+                        })
+                except Exception as e:
+                    logger.warning(f"Error: {str(e)}")
+            
+            if len(comp_slackness) > 1:  # Only add if there are actual conditions
+                kkt_conditions.append({
+                    "title": "Complementary Slackness",
+                    "conditions": comp_slackness
+                })
         
         return kkt_conditions
     
