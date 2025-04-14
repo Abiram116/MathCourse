@@ -8,7 +8,7 @@ import json
 import re
 import string
 import logging
-import cvxpy as cp  # Add cvxpy for advanced solvers
+import cvxpy as cp
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -61,147 +61,110 @@ def get_variable_mapping(expr):
     # Use a more robust regex that handles subscripts and different variable names
     variables = set(re.findall(r'([a-zA-Z][a-zA-Z0-9]*)', expr))
     
-    # Filter out mathematical functions
+    # Filter out mathematical functions and cross-terms
     math_functions = {'sin', 'cos', 'tan', 'log', 'exp', 'sqrt', 'PI', 'pi', 'ln'}
     variables = {var for var in variables if var not in math_functions}
     
+    # Remove any potential cross-terms (e.g., 'ab' if 'a' and 'b' are variables)
+    base_vars = set()
+    for var in variables:
+        if len(var) == 1:  # Single character variables
+            base_vars.add(var)
+        elif all(c in base_vars for c in var):  # Check if it's a combination of base variables
+            continue  # Skip cross-terms
+        else:
+            base_vars.add(var)  # Add multi-character variables that aren't cross-terms
+    
     # Create a mapping from variable names to indices
-    result = {var: idx for idx, var in enumerate(sorted(variables))}
+    result = {var: idx for idx, var in enumerate(sorted(base_vars))}
     logger.debug(f"Variable mapping: {result}")
     return result
 
 def parse_quadratic_terms(expr, var_mapping):
-    """Parse quadratic and linear terms from an expression."""
-    num_vars = len(var_mapping)
-    logger.debug(f"Parsing quadratic terms from: {expr} with {num_vars} variables")
-    
-    # Initialize matrices
-    Q = np.zeros((num_vars, num_vars))  # Quadratic terms
-    c = np.zeros(num_vars)  # Linear terms
-    constant = 0.0
-    
-    # Replace ** with ^ for easier parsing and normalize spaces
-    expr = expr.replace('**', '^').replace(' ', '')
-    
-    # Split into terms
-    expr = expr.replace('-', '+-')
-    if expr.startswith('+'):
-        expr = expr[1:]
-    terms = expr.split('+')
-    logger.debug(f"Split terms: {terms}")
-    
-    for term in terms:
-        if not term:  # Skip empty terms
-            continue
-            
-        # Check if the term is a constant
-        if all(not c.isalpha() for c in term):
-            try:
-                constant += float(term)
-                logger.debug(f"Added constant: {term}")
-                continue
-            except ValueError:
-                logger.debug(f"Failed to parse constant: {term}")
-                pass
-                
-        # Check for quadratic terms (containing ^ or ** or two variables multiplied)
-        if '^' in term or '*' in term:
-            # Handle x^2 terms - more flexible regex to handle various forms
-            squared_match = re.match(r'([-]?\d*\.?\d*)?([a-zA-Z][a-zA-Z0-9]*)\^2$', term)
-            if not squared_match:
-                # Try alternative format for squared terms
-                squared_match = re.match(r'([-]?\d*\.?\d*)?([a-zA-Z][a-zA-Z0-9]*)\^{2}$', term)
-            
-            if squared_match:
-                coef_str = squared_match.group(1)
-                coef = 1.0
-                if coef_str:
-                    if coef_str == '-':
-                        coef = -1.0
-                    else:
-                        try:
-                            coef = float(coef_str)
-                        except ValueError:
-                            logger.debug(f"Failed to parse coefficient in squared term: {term}")
-                
-                var = squared_match.group(2)
-                logger.debug(f"Squared term: {term}, coef: {coef}, var: {var}")
-                if var in var_mapping:
-                    i = var_mapping[var]
-                    Q[i, i] += coef
-                    logger.debug(f"Added to Q[{i},{i}] = {Q[i,i]}")
-                else:
-                    logger.warning(f"Variable {var} not found in mapping for term: {term}")
-                continue
-                
-            # Handle x*y terms (cross-terms) - more flexible regex
-            cross_match = re.match(r'([-]?\d*\.?\d*)?([a-zA-Z][a-zA-Z0-9]*)\*([a-zA-Z][a-zA-Z0-9]*)', term)
-            if not cross_match:
-                # Try alternative for implicit multiplication (no * symbol)
-                cross_match = re.match(r'([-]?\d*\.?\d*)?([a-zA-Z][a-zA-Z0-9]*)([a-zA-Z][a-zA-Z0-9]*)', term)
-            
-            if cross_match:
-                coef_str = cross_match.group(1)
-                coef = 1.0
-                if coef_str:
-                    if coef_str == '-':
-                        coef = -1.0
-                    else:
-                        try:
-                            coef = float(coef_str)
-                        except ValueError:
-                            logger.debug(f"Failed to parse coefficient in cross term: {term}")
-                
-                var1 = cross_match.group(2)
-                var2 = cross_match.group(3)
-                logger.debug(f"Cross term: {term}, coef: {coef}, var1: {var1}, var2: {var2}")
-                
-                # Check if it's actually the same variable (like x1*x1)
-                if var1 == var2 and var1 in var_mapping:
-                    i = var_mapping[var1]
-                    Q[i, i] += coef
-                    logger.debug(f"Added to Q[{i},{i}] = {Q[i,i]} (same variable)")
-                    continue
-                
-                if var1 in var_mapping and var2 in var_mapping:
-                    i = var_mapping[var1]
-                    j = var_mapping[var2]
-                    # Add half to each symmetric position for a total of 'coef'
-                    Q[i, j] += coef / 2
-                    Q[j, i] += coef / 2
-                    logger.debug(f"Added to Q[{i},{j}] and Q[{j},{i}] = {Q[i,j]}")
-                else:
-                    if var1 not in var_mapping:
-                        logger.warning(f"Variable {var1} not found in mapping for term: {term}")
-                    if var2 not in var_mapping:
-                        logger.warning(f"Variable {var2} not found in mapping for term: {term}")
-                continue
+    """Parse quadratic terms from an expression, including cross terms."""
+    try:
+        # Initialize Q matrix and c vector
+        n_vars = len(var_mapping)
+        Q = np.zeros((n_vars, n_vars))
+        c = np.zeros(n_vars)
+        constant = 0
         
-        # Handle linear terms - more flexible regex
-        linear_match = re.match(r'([-]?\d*\.?\d*)?([a-zA-Z][a-zA-Z0-9]*)', term)
-        if linear_match:
-            coef_str = linear_match.group(1)
-            coef = 1.0
-            if coef_str:
-                if coef_str == '-':
-                    coef = -1.0
-                else:
-                    try:
-                        coef = float(coef_str)
-                    except ValueError:
-                        logger.debug(f"Failed to parse coefficient in linear term: {term}")
+        # Split expression into terms
+        terms = re.split(r'[+-]', expr)
+        signs = re.findall(r'[+-]', expr)
+        
+        # Process each term
+        for i, term in enumerate(terms):
+            term = term.strip()
+            if not term:
+                continue
+                
+            # Get the sign (default to + if first term)
+            sign = -1 if (i > 0 and signs[i-1] == '-') else 1
             
-            var = linear_match.group(2)
-            logger.debug(f"Linear term: {term}, coef: {coef}, var: {var}")
-            if var in var_mapping:
-                i = var_mapping[var]
-                c[i] += coef
-                logger.debug(f"Added to c[{i}] = {c[i]}")
-            else:
-                logger.warning(f"Variable {var} not found in mapping for term: {term}")
+            # Handle constant term
+            if not any(var in term for var in var_mapping):
+                try:
+                    constant += sign * float(term)
+                    continue
+                except ValueError:
+                    pass
+            
+            # Handle linear terms
+            for var in var_mapping:
+                if term == var:
+                    c[var_mapping[var]] += sign
+                    break
+                elif term.endswith(var):
+                    coeff = term[:-len(var)]
+                    if coeff:
+                        try:
+                            c[var_mapping[var]] += sign * float(coeff)
+                        except ValueError:
+                            logger.warning(f"Could not parse coefficient in linear term: {term}")
+                    else:
+                        c[var_mapping[var]] += sign
+                    break
+            
+            # Handle quadratic terms (including cross terms)
+            for var1 in var_mapping:
+                for var2 in var_mapping:
+                    # Handle squared terms (x^2)
+                    if term == f"{var1}^2":
+                        Q[var_mapping[var1], var_mapping[var1]] += sign
+                        break
+                    elif term.endswith(f"{var1}^2"):
+                        coeff = term[:-len(f"{var1}^2")]
+                        if coeff:
+                            try:
+                                Q[var_mapping[var1], var_mapping[var1]] += sign * float(coeff)
+                            except ValueError:
+                                logger.warning(f"Could not parse coefficient in squared term: {term}")
+                        else:
+                            Q[var_mapping[var1], var_mapping[var1]] += sign
+                        break
+                    
+                    # Handle cross terms (xy)
+                    if var1 != var2 and f"{var1}{var2}" in term:
+                        # Split the term to get coefficient
+                        parts = term.split(f"{var1}{var2}")
+                        coeff = parts[0] if parts[0] else "1"
+                        try:
+                            coeff_value = float(coeff)
+                            Q[var_mapping[var1], var_mapping[var2]] += sign * coeff_value / 2
+                            Q[var_mapping[var2], var_mapping[var1]] += sign * coeff_value / 2
+                        except ValueError:
+                            logger.warning(f"Could not parse coefficient in cross term: {term}")
+                        break
+        
+        # Ensure Q is symmetric
+        Q = (Q + Q.T) / 2
+        
+        return Q, c, constant
     
-    logger.debug(f"Parsed result: Q={Q}, c={c}, constant={constant}")
-    return Q, c, constant
+    except Exception as e:
+        logger.exception(f"Error parsing quadratic terms: {str(e)}")
+        raise ValueError(f"Error parsing quadratic terms: {str(e)}")
 
 def parse_constraint(expr, var_mapping):
     """Parse a constraint into coefficients and right-hand side."""
@@ -434,10 +397,7 @@ def solve_nonlinear(request):
                 }
                 
                 result['method_explanation'] = [
-                    "Wolfe's method solves quadratic programs by creating a dual problem and using complementary slackness.",
-                    "The method sets up a tableau similar to the simplex method for linear programming.",
-                    "The KKT conditions are built into the tableau structure.",
-                    "The method then performs pivot operations to find an optimal solution."
+                    "Wolfe's Method is a special way to solve quadratic problems with constraints. It creates a table (tableau) that includes both the original problem and its 'dual', then uses a step-by-step process to find the best solution while keeping track of which constraints are important."
                 ]
                 
             elif requested_method == 'beale':
@@ -509,28 +469,23 @@ def solve_nonlinear(request):
                 }
                 
                 result['method_explanation'] = [
-                    "Beale's method is an extension of the simplex method for quadratic programming.",
-                    "The method introduces artificial variables to handle the quadratic terms.",
-                    "The algorithm performs pivot operations similar to the simplex method.",
-                    "It converges to the optimal solution by satisfying the KKT conditions."
+                    "Beale's Method is a modified version of the simplex method for quadratic problems. It creates a special table (tableau) and uses a step-by-step process to find the best solution while handling quadratic terms."
                 ]
             
             else:  # Auto or other QP method
                 result['method_explanation'] = [
-                    "This quadratic program can be solved using various methods:",
-                    "- Interior point methods: Work by moving through the interior of the feasible region",
-                    "- Active set methods: Identify the active constraints at the optimum",
-                    "- Gradient projection: Projects the gradient onto the feasible region",
-                    "The solution satisfies the KKT conditions shown above."
+                    "This quadratic program can be solved using different methods:",
+                    "1. Interior Point: Moves through the 'inside' of the feasible region",
+                    "2. Active Set: Identifies which constraints are important at the solution",
+                    "3. Gradient Projection: Finds the best direction to move while staying within limits"
                 ]
         
         else:  # General nonlinear
             result['method_explanation'] = [
-                "This nonlinear program requires numerical optimization methods:",
-                "- Sequential quadratic programming (SQP): Approximates the problem with quadratic subproblems",
-                "- Interior point methods: Follow a path through the interior of the feasible region",
-                "- Trust region methods: Build and refine models within a trusted region",
-                "The KKT conditions provide necessary conditions for optimality."
+                "For general nonlinear problems, we use numerical optimization methods:",
+                "1. SQP: Breaks the problem into smaller quadratic problems",
+                "2. Interior Point: Moves through the 'inside' of the feasible region",
+                "3. Trust Region: Explores solutions within a trusted area"
             ]
         
         # Only solve if explicitly requested
@@ -882,6 +837,10 @@ def solve_quadratic_program(objective_expr, constraints_list, min_max):
         # Parse the quadratic objective
         Q, c, constant = parse_quadratic_terms(objective_expr, var_mapping)
         
+        # Add small regularization to ensure positive definiteness
+        regularization = 1e-6
+        Q = Q + regularization * np.eye(n_vars)
+        
         # Handle maximization by negating the objective
         if min_max == 'max':
             Q = -Q
@@ -964,14 +923,18 @@ def solve_quadratic_program(objective_expr, constraints_list, min_max):
             # Initial guess
             x0 = np.zeros(n_vars)
             
-            # Solve the problem
+            # Solve the problem with increased tolerance
             result = optimize.minimize(
                 obj_func,
                 x0,
                 method='SLSQP',
                 jac=obj_grad,
                 constraints=constraints,
-                options={'disp': True}
+                options={
+                    'disp': True,
+                    'ftol': 1e-8,
+                    'maxiter': 1000
+                }
             )
             
             # Extract solution
