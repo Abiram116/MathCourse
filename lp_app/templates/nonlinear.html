@@ -17,6 +17,17 @@
 
     <style>
         /* Nonlinear-specific styles */
+        .detected-problem-type {
+            opacity: 0; /* Start hidden */
+            transform: translateY(20px); /* Start slightly below */
+            transition: opacity 0.3s ease, transform 0.3s ease; /* Transition for smooth effect */
+        }
+        
+        .detected-problem-type.visible {
+            opacity: 1; /* Fully visible */
+            transform: translateY(0); /* Move to original position */
+        }
+
         .tab-button {
             transition: all 0.3s ease;
         }
@@ -103,6 +114,7 @@
             font-weight: 500;
             margin-bottom: 1rem;
             color: rgb(156, 163, 175);
+            text-align: left;
         }
 
         .kkt-explanation {
@@ -119,14 +131,19 @@
             font-weight: 500;
             margin-top: 1.25rem;
             margin-bottom: 0.75rem;
-            color: rgb(156, 163, 175);  /* gray-400 */
+            color: rgb(156, 163, 175);
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            text-align: left;
+            justify-content: flex-start;
+            padding-left: 1rem;
         }
 
         .kkt-subtitle .math {
-            color: rgb(209, 213, 219);  /* gray-300 */
+            color: rgb(209, 213, 219);
+            display: inline-flex;
+            align-items: center;
         }
 
         .general-form .kkt-section-title {
@@ -140,10 +157,12 @@
         .kkt-inline-container {
             display: flex;
             align-items: center;
+            justify-content: center;
             flex-wrap: wrap;
-            gap: 0.25rem;
-            padding: 0.25rem 0;
-            margin: 0.5rem 0;
+            gap: 0.5rem;
+            padding: 0.5rem 0;
+            margin: 0.75rem 0;
+            text-align: center;
         }
 
         .kkt-inline-text {
@@ -155,13 +174,18 @@
 
         .kkt-inline-math {
             font-family: 'Computer Modern', serif;
-            display: inline;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             vertical-align: middle;
         }
 
         .kkt-block-math {
-            display: block;
-            margin: 1rem 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            margin: 1.5rem 0;
         }
 
         .kkt-text {
@@ -172,11 +196,59 @@
 
         .kkt-math {
             margin: 1rem 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+
+        .kkt-condition-line {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0.75rem 0;
+            text-align: center;
+        }
+
+        .dual-feasibility .kkt-math,
+        .dual-feasibility .kkt-inline-math,
+        .dual-feasibility .kkt-condition-line {
+            justify-content: center;
+            text-align: center;
+            width: 100%;
         }
 
         /* Remove background and border from sections */
         #content-kkt {
             padding: 1.5rem;
+        }
+
+        .mq-editable-field.mq-empty:before {
+            content: attr(data-placeholder);
+            color: rgba(255, 255, 255, 0.4) !important;
+            position: absolute !important;
+            left: 16px !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+            pointer-events: none !important;
+            font-size: 16px !important;
+            z-index: 1 !important;
+            display: block !important;
+            opacity: 1 !important;
+            transition: opacity var(--transition-duration) ease-in-out !important;
+        }
+        
+        .mq-editable-field:not(.mq-empty):before {
+            opacity: 0 !important;
+        }
+        
+        .mq-cursor {
+            border-left: 1px solid var(--color-text) !important;
+            margin-left: -1px !important;
+            border-color: var(--color-text) !important;
+            visibility: visible !important;
+            display: inline-flex !important;
+            align-items: center !important;
         }
     </style>
 
@@ -242,7 +314,7 @@
                         </div>
 
                         <!-- New problem type detection display -->
-                        <div class="bg-blue-900/30 p-4 rounded-lg border border-blue-700/50 mt-4">
+                        <div class="detected-problem-type bg-blue-900/30 p-4 rounded-lg border border-blue-700/50 mt-4">
                             <div class="flex items-center">
                                 <div class="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
                                     <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -434,6 +506,14 @@
                 ease: 'back.out'
             }, "-=0.4")
         
+            // Add transition for detected problem type
+            .to('.detected-problem-type', {
+                opacity: 1,
+                y: 0,
+                duration: 0.8,
+                ease: 'back.out'
+            }, "-=0.4")
+        
             // Buttons animation
             .to('#solveBtn, #clearBtn', {
                 opacity: 1,
@@ -565,30 +645,6 @@
 
         // Add CSS for placeholder styling
         const style = document.createElement('style');
-        style.textContent = `
-            .mq-editable-field {
-                position: relative;
-            }
-            .mq-editable-field::before {
-                content: attr(data-placeholder);
-                position: absolute;
-                left: 0;
-                top: 0;
-                color: #9CA3AF;
-                pointer-events: none;
-                opacity: 0;
-                transition: opacity 0.2s ease;
-            }
-            .mq-editable-field[data-placeholder-visible="true"]::before {
-                opacity: 1;
-            }
-            .mq-editable-field.mq-focused::before {
-                opacity: 0;
-            }
-            .mq-editable-field.has-content::before {
-                opacity: 0;
-            }
-        `;
         document.head.appendChild(style);
 
         // Add focus/blur handlers
@@ -609,6 +665,11 @@
             this.classList.remove('mq-focused');
             updatePlaceholderVisibility(constraintsMathField);
         });
+        // Function to update placeholder visibility
+        function updatePlaceholderVisibility(mathField) {
+            const isEmpty = mathField.latex().trim() === '';
+            mathField.el().classList.toggle('mq-empty', isEmpty);
+        }
 
         // Set initial placeholders
         objectiveMathField.el().setAttribute('data-placeholder', '2a^2 + 3b^2 - 4a - 6b');
@@ -917,6 +978,7 @@
                 console.log('No objective function entered');
                 $('#detected-problem-type').html('<span class="font-medium">Enter an objective function to detect</span>');
                 $('#qp-method-selection').addClass('hidden');
+                {% comment %} $('.detected-problem-type').removeClass('visible'); {% endcomment %}
                 return;
             }
             
@@ -928,6 +990,8 @@
             
             // Update display
             $('#detected-problem-type').html(`<span class="font-medium">${problemType}</span>`);
+            // Show the detected problem type with transition
+            $('.detected-problem-type').addClass('visible');
             
             // Show/hide QP method selection
             if (isQuadratic) {
@@ -1033,41 +1097,18 @@
                 return;
             }
 
-            // For quadratic problems, ensure we have proper constraints
-            let finalConstraints = constraints;
-            if (problemType === 'quadratic') {
-                // Add default bounds if no constraints are provided
-                if (!constraints || constraints.trim() === '') {
-                    finalConstraints = 'a >= 0; b >= 0; a <= 100; b <= 100';
-                } else {
-                    // Check if we have bounds for all variables
-                    const hasABounds = constraints.includes('a>=') || constraints.includes('a<=');
-                    const hasBBounds = constraints.includes('b>=') || constraints.includes('b<=');
-                    
-                    if (!hasABounds) {
-                        finalConstraints += '; a >= 0; a <= 100';
-                    }
-                    if (!hasBBounds) {
-                        finalConstraints += '; b >= 0; b <= 100';
-                    }
-                }
-            }
-            
-            // Adjust the objective function if it's a quadratic form
-            const adjustedObjective = adjustQuadraticForm(objective);
-            
-            // Prepare data
+            // Prepare data - use constraints exactly as provided by user
             const data = {
                 optimization_type: optimizationType,
-                objective: adjustedObjective,
-                constraints: finalConstraints,
+                objective: objective,
+                constraints: constraints,
                 method: method,
                 problem_type: problemType,
                 solve_now: false
             };
             
-            console.log('Final constraints:', finalConstraints);
-            console.log('Adjusted objective:', adjustedObjective);
+            console.log('Constraints:', constraints);
+            console.log('Objective:', objective);
             
             // Make API call
             $.ajax({
@@ -1092,7 +1133,7 @@
                     }
                     
                     if (response.display_results) {
-                        showResults(response, adjustedObjective, finalConstraints, optimizationType);
+                        showResults(response, objective, constraints, optimizationType);
                     } else {
                         $('#results-container').addClass('hidden');
                     }

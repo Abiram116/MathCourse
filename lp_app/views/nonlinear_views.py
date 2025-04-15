@@ -759,24 +759,11 @@ def generate_kkt_conditions(objective_expr, constraints_list, min_max='min'):
         
         # Add constraint definitions
         if inequality_constraints:
-            # Only show the constraints that were actually provided by the user
+            # Only show constraints that were provided by the user
             for i, g in enumerate(inequality_constraints):
                 try:
-                    original = constraint_expr_map.get(str(g), f"g_{i+1}(x)")
-                    # Debug logging
-                    logger.debug(f"Processing constraint: {original}")
-                    logger.debug(f"Constraints list: {constraints_list}")
-                    
-                    # Normalize constraints for comparison
-                    normalized_original = re.sub(r'\s+', '', original)
-                    normalized_constraints = [re.sub(r'\s+', '', c) for c in constraints_list]
-                    
-                    logger.debug(f"Normalized original: {normalized_original}")
-                    logger.debug(f"Normalized constraints: {normalized_constraints}")
-                    
-                    # Only show the constraint if it was provided by the user
-                    if any(normalized_original.startswith(nc) or nc.startswith(normalized_original) 
-                          for nc in normalized_constraints):
+                    if str(g) in user_provided_constraints:  # Only show if user provided
+                        original = constraint_expr_map.get(str(g), f"g_{i+1}(x)")
                         lagrangian_intro.append({
                             "type": "math",
                             "content": f"g_{i+1}(x): {original} \\rightarrow {sp.latex(g)} \\leq 0"
@@ -838,13 +825,7 @@ def generate_kkt_conditions(objective_expr, constraints_list, min_max='min'):
         if inequality_constraints:
             for i, g in enumerate(inequality_constraints):
                 try:
-                    original = constraint_expr_map.get(str(g), f"g_{i+1}(x)")
-                    normalized_original = re.sub(r'\s+', '', original)
-                    normalized_constraints = [re.sub(r'\s+', '', c) for c in constraints_list]
-                    
-                    # Only show the constraint if it was provided by the user
-                    if any(normalized_original.startswith(nc) or nc.startswith(normalized_original) 
-                          for nc in normalized_constraints):
+                    if str(g) in user_provided_constraints:  # Only show if user provided
                         primal_conditions.append({
                             "type": "math",
                             "content": f"g_{i+1}(x) = {sp.latex(g)} \\leq 0"
@@ -867,12 +848,7 @@ def generate_kkt_conditions(objective_expr, constraints_list, min_max='min'):
             # Show multipliers only for user-provided constraints
             for i, g in enumerate(inequality_constraints):
                 try:
-                    original = constraint_expr_map.get(str(g), f"g_{i+1}(x)")
-                    normalized_original = re.sub(r'\s+', '', original)
-                    normalized_constraints = [re.sub(r'\s+', '', c) for c in constraints_list]
-                    
-                    if any(normalized_original.startswith(nc) or nc.startswith(normalized_original) 
-                          for nc in normalized_constraints):
+                    if str(g) in user_provided_constraints:  # Only show if user provided
                         dual_conditions.append({
                             "type": "math",
                             "content": f"{sp.latex(lambda_symbols[i])} \\geq 0"
@@ -896,12 +872,7 @@ def generate_kkt_conditions(objective_expr, constraints_list, min_max='min'):
             # Show complementary slackness only for user-provided constraints
             for i, (g, lambda_sym) in enumerate(zip(inequality_constraints, lambda_symbols)):
                 try:
-                    original = constraint_expr_map.get(str(g), f"g_{i+1}(x)")
-                    normalized_original = re.sub(r'\s+', '', original)
-                    normalized_constraints = [re.sub(r'\s+', '', c) for c in constraints_list]
-                    
-                    if any(normalized_original.startswith(nc) or nc.startswith(normalized_original) 
-                          for nc in normalized_constraints):
+                    if str(g) in user_provided_constraints:  # Only show if user provided
                         comp_slackness.append({
                             "type": "math",
                             "content": f"{sp.latex(lambda_sym)} \\cdot {sp.latex(g)} = 0"
